@@ -108,3 +108,81 @@ def test_load_and_filter_handles_missing_year(sample_xlsx):
     records = load_and_filter(sample_xlsx)
     rec = next(r for r in records if r["business_name"] == "Another Black Business")
     assert rec["year_founded"] == ""
+
+
+def test_geocode_address_returns_coords():
+    mock_response = MagicMock()
+    mock_response.json.return_value = [{"lat": "40.6892", "lon": "-74.0445"}]
+    mock_response.raise_for_status.return_value = None
+    with patch("requests.get", return_value=mock_response):
+        lat, lon = geocode_address("123 Main St", "Brooklyn", "New York", "11201")
+    assert lat == "40.6892"
+    assert lon == "-74.0445"
+
+
+def test_geocode_address_returns_empty_on_no_results():
+    mock_response = MagicMock()
+    mock_response.json.return_value = []
+    mock_response.raise_for_status.return_value = None
+    with patch("requests.get", return_value=mock_response):
+        lat, lon = geocode_address("Fake St", "Nowhere", "NY", "00000")
+    assert lat == ""
+    assert lon == ""
+
+
+def test_geocode_address_returns_empty_on_network_error():
+    with patch("requests.get", side_effect=Exception("network error")):
+        lat, lon = geocode_address("123 Main St", "Brooklyn", "NY", "11201")
+    assert lat == ""
+    assert lon == ""
+
+
+def test_build_csv_creates_output_file(sample_xlsx, tmp_path):
+    output = tmp_path / "out.csv"
+    with patch("build_csv.geocode_address", return_value=("40.68", "-74.04")):
+        with patch("time.sleep"):
+            build_csv(source=sample_xlsx, output=output)
+    assert output.exists()
+
+
+def test_build_csv_output_has_correct_row_count(sample_xlsx, tmp_path):
+    output = tmp_path / "out.csv"
+    with patch("build_csv.geocode_address", return_value=("40.68", "-74.04")):
+        with patch("time.sleep"):
+            build_csv(source=sample_xlsx, output=output)
+    with open(output) as f:
+        rows = list(csv.DictReader(f))
+    assert len(rows) == 2  # 2 Black businesses in fixture
+
+
+def test_build_csv_output_has_geocoords(sample_xlsx, tmp_path):
+    output = tmp_path / "out.csv"
+    with patch("build_csv.geocode_address", return_value=("40.68", "-74.04")):
+        with patch("time.sleep"):
+            build_csv(source=sample_xlsx, output=output)
+    with open(output) as f:
+        rows = list(csv.DictReader(f))
+    assert rows[0]["latitude"] == "40.68"
+    assert rows[0]["longitude"] == "-74.04"
+
+
+def test_build_csv_output_has_metadata(sample_xlsx, tmp_path):
+    output = tmp_path / "out.csv"
+    with patch("build_csv.geocode_address", return_value=("40.68", "-74.04")):
+        with patch("time.sleep"):
+            build_csv(source=sample_xlsx, output=output)
+    with open(output) as f:
+        rows = list(csv.DictReader(f))
+    assert rows[0]["data_source"] == "NYC MWBE Directory 2025"
+    assert rows[0]["last_verified"] == "2025-09-09"
+    assert len(rows[0]["business_id"]) == 8
+
+
+def test_build_csv_sample_limits_records(sample_xlsx, tmp_path):
+    output = tmp_path / "out.csv"
+    with patch("build_csv.geocode_address", return_value=("40.68", "-74.04")):
+        with patch("time.sleep"):
+            build_csv(source=sample_xlsx, output=output, sample=1)
+    with open(output) as f:
+        rows = list(csv.DictReader(f))
+    assert len(rows) == 1
