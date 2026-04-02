@@ -116,7 +116,7 @@ def build_csv(source=SOURCE_FILE, output=OUTPUT_FILE, sample=None):
                 rec["address_street"], rec["address_city"],
                 rec["address_state"], rec["address_zip"]
             )
-            row = {col: "" for col in OUTPUT_COLUMNS}
+            row = {field: "" for field in OUTPUT_COLUMNS}
             row.update(rec)
             row["business_id"] = str(uuid.uuid4())[:8]
             row["latitude"] = lat
@@ -125,7 +125,7 @@ def build_csv(source=SOURCE_FILE, output=OUTPUT_FILE, sample=None):
             row["last_verified"] = "2025-09-09"
             writer.writerow(row)
             if (i + 1) % 100 == 0:
-                print(f"  {i + 1}/{len(records)} geocoded…")
+                print(f"  {i + 1}/{len(records)} geocoded...")
 
     print(f"Done. {len(records)} records written to {output}")
 
