@@ -115,6 +115,18 @@
     });
   }
 
+  // ── Coverage bar ────────────────────────────────────────────────────────
+  var US_BLACK_EMPLOYER_BUSINESSES = 160000; // 2021 Census Annual Business Survey
+
+  function updateCoverageBar(count) {
+    var pct = (count / US_BLACK_EMPLOYER_BUSINESSES * 100);
+    var pctDisplay = pct.toFixed(1) + '%';
+    var fillEl = document.getElementById('coverage-fill');
+    var pctEl  = document.getElementById('coverage-pct');
+    if (fillEl) fillEl.style.width = Math.min(pct, 100) + '%';
+    if (pctEl)  pctEl.textContent  = pctDisplay;
+  }
+
   // ── Data loading ────────────────────────────────────────────────────────
   function loadData() {
     Papa.parse('data/businesses.csv', {
@@ -127,6 +139,7 @@
         if (countEl) countEl.textContent = rows.length.toLocaleString();
         addMarkersToMap(rows);
         initTable(rows);
+        updateCoverageBar(rows.length);
       },
       error: function (err) {
         console.error('Could not load businesses.csv:', err);

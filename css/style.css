@@ -125,6 +125,47 @@ section { scroll-margin-top: 52px; }
 .popup-website a { color: var(--accent); text-decoration: none; font-weight: 600; }
 .popup-website a:hover { text-decoration: underline; }
 
+/* ── Coverage bar ───────────────────────────────────────────────────────── */
+.coverage-bar-wrap {
+  margin-bottom: 2rem;
+}
+.coverage-bar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.4rem;
+}
+.coverage-bar-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.coverage-bar-pct {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+.coverage-bar-track {
+  width: 100%;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.coverage-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 0.6s ease;
+}
+.coverage-bar-note {
+  margin-top: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
 /* ── Table ──────────────────────────────────────────────────────────────── */
 .table-controls {
   display: flex;
