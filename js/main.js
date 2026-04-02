@@ -1,7 +1,21 @@
 (function () {
   'use strict';
 
-  var map, table;
+  var map, markerLayer;
+  var table; // assigned in initTable
+
+  // ── Utilities ────────────────────────────────────────────────────────────
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function safeUrl(url) {
+    return /^https?:\/\//i.test(url) ? url : '';
+  }
 
   // ── Map ────────────────────────────────────────────────────────────────
   function initMap() {
@@ -10,9 +24,11 @@
       attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 18
     }).addTo(map);
+    markerLayer = L.layerGroup().addTo(map);
   }
 
   function addMarkersToMap(rows) {
+    markerLayer.clearLayers();
     rows.forEach(function (row) {
       var lat = parseFloat(row.latitude);
       var lon = parseFloat(row.longitude);
@@ -33,29 +49,70 @@
             : row.description)
         : '';
 
-      var websiteHtml = row.website
-        ? '<div class="popup-website"><a href="' + row.website +
+      var href = safeUrl(row.website);
+      var websiteHtml = href
+        ? '<div class="popup-website"><a href="' + escHtml(href) +
           '" target="_blank" rel="noopener">' +
-          row.website.replace(/^https?:\/\//, '').split('/')[0] + ' \u2197</a></div>'
+          escHtml(href.replace(/^https?:\/\//, '').split('/')[0]) + ' \u2197</a></div>'
         : '';
 
       var popupHtml =
-        '<div class="popup-name">' + row.business_name + '</div>' +
-        '<div class="popup-meta">' + (row.industry || '') + ' \u00b7 ' + (row.address_city || '') + '</div>' +
-        (row.owner_name ? '<div class="popup-field"><span class="popup-label">Owner: </span>' + row.owner_name + '</div>' : '') +
-        (row.year_founded ? '<div class="popup-field"><span class="popup-label">Founded: </span>' + row.year_founded + '</div>' : '') +
-        (desc ? '<div class="popup-field"><span class="popup-label">About: </span>' + desc + '</div>' : '') +
+        '<div class="popup-name">' + escHtml(row.business_name) + '</div>' +
+        '<div class="popup-meta">' + escHtml(row.industry || '') + ' \u00b7 ' + escHtml(row.address_city || '') + '</div>' +
+        (row.owner_name ? '<div class="popup-field"><span class="popup-label">Owner: </span>' + escHtml(row.owner_name) + '</div>' : '') +
+        (row.year_founded ? '<div class="popup-field"><span class="popup-label">Founded: </span>' + escHtml(row.year_founded) + '</div>' : '') +
+        (desc ? '<div class="popup-field"><span class="popup-label">About: </span>' + escHtml(desc) + '</div>' : '') +
         websiteHtml;
 
       marker.bindPopup(popupHtml, { maxWidth: 260 });
-      marker.addTo(map);
+      marker.addTo(markerLayer);
     });
   }
 
-  // ── Table (stub — filled in Task 7) ────────────────────────────────────
+  // ── Table ───────────────────────────────────────────────────────────────
   function initTable(rows) {
-    // placeholder — implemented in Task 7
-    console.log('Loaded', rows.length, 'businesses');
+    table = $('#business-table').DataTable({
+      data: rows,
+      pageLength: 25,
+      lengthChange: false,
+      autoWidth: false,
+      dom: 'tip',
+      columnDefs: [{ targets: [7, 8, 9, 10], visible: false }],
+      columns: [
+        { data: 'business_name',  title: 'Business Name' },
+        { data: 'owner_name',     title: 'Owner',         defaultContent: '\u2014' },
+        { data: 'address_city',   title: 'City',          defaultContent: '\u2014' },
+        { data: 'address_state',  title: 'State',         defaultContent: '\u2014' },
+        { data: 'industry',       title: 'Industry',      defaultContent: '\u2014' },
+        { data: 'year_founded',   title: 'Founded',       defaultContent: '\u2014' },
+        {
+          data: 'website',
+          title: 'Website',
+          defaultContent: '\u2014',
+          orderable: false,
+          render: function (data) {
+            var href = safeUrl(data);
+            if (!href) return '\u2014';
+            var display = href.replace(/^https?:\/\//, '').split('/')[0];
+            return '<a href="' + escHtml(href) + '" target="_blank" rel="noopener">' + escHtml(display) + ' \u2197</a>';
+          }
+        },
+        // Expanded columns (indices 7–10, hidden by default)
+        { data: 'address_street', title: 'Address',       defaultContent: '\u2014' },
+        { data: 'certification',  title: 'Certification', defaultContent: '\u2014' },
+        { data: 'naics_code',     title: 'NAICS Code',    defaultContent: '\u2014' },
+        {
+          data: 'description',
+          title: 'Description',
+          defaultContent: '\u2014',
+          render: function (data) {
+            if (!data) return '\u2014';
+            var truncated = data.length > 150 ? data.substring(0, 150) + '\u2026' : data;
+            return escHtml(truncated);
+          }
+        }
+      ]
+    });
   }
 
   // ── Data loading ────────────────────────────────────────────────────────
@@ -77,8 +134,50 @@
     });
   }
 
+  // ── Toggle ───────────────────────────────────────────────────────────────
+  document.getElementById('btn-default').addEventListener('click', function () {
+    if (!table) return;
+    [7, 8, 9, 10].forEach(function (i) { table.column(i).visible(false); });
+    document.getElementById('btn-default').classList.add('active');
+    document.getElementById('btn-expanded').classList.remove('active');
+  });
+
+  document.getElementById('btn-expanded').addEventListener('click', function () {
+    if (!table) return;
+    [7, 8, 9, 10].forEach(function (i) { table.column(i).visible(true); });
+    document.getElementById('btn-expanded').classList.add('active');
+    document.getElementById('btn-default').classList.remove('active');
+  });
+
+  // ── Custom search ────────────────────────────────────────────────────────
+  document.getElementById('table-search').addEventListener('keyup', function () {
+    if (table) table.search(this.value).draw();
+  });
+
+  // ── Request Dataset button ────────────────────────────────────────────────
+  document.getElementById('btn-request').addEventListener('click', function () {
+    document.getElementById('access').scrollIntoView({ behavior: 'smooth' });
+  });
+
+  // ── Access form ──────────────────────────────────────────────────────────
+  document.getElementById('dataset-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var name        = document.getElementById('req-name').value;
+    var affiliation = document.getElementById('req-affiliation').value;
+    var use         = document.getElementById('req-use').value;
+    var subject = encodeURIComponent('Black Business Research Table \u2014 Dataset Request');
+    var body    = encodeURIComponent(
+      'Name: ' + name + '\n' +
+      'Affiliation: ' + affiliation + '\n' +
+      'Intended Use:\n' + use
+    );
+    window.location.href = 'mailto:kylemcc@umich.edu?subject=' + subject + '&body=' + body;
+  });
+
   // ── Init ─────────────────────────────────────────────────────────────────
-  initMap();
-  loadData();
+  document.addEventListener('DOMContentLoaded', function () {
+    initMap();
+    loadData();
+  });
 
 }());
