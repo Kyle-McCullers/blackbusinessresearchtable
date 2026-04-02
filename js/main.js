@@ -134,50 +134,50 @@
     });
   }
 
-  // ── Toggle ───────────────────────────────────────────────────────────────
-  document.getElementById('btn-default').addEventListener('click', function () {
-    if (!table) return;
-    [7, 8, 9, 10].forEach(function (i) { table.column(i).visible(false); });
-    document.getElementById('btn-default').classList.add('active');
-    document.getElementById('btn-expanded').classList.remove('active');
-  });
-
-  document.getElementById('btn-expanded').addEventListener('click', function () {
-    if (!table) return;
-    [7, 8, 9, 10].forEach(function (i) { table.column(i).visible(true); });
-    document.getElementById('btn-expanded').classList.add('active');
-    document.getElementById('btn-default').classList.remove('active');
-  });
-
-  // ── Custom search ────────────────────────────────────────────────────────
-  document.getElementById('table-search').addEventListener('keyup', function () {
-    if (table) table.search(this.value).draw();
-  });
-
-  // ── Request Dataset button ────────────────────────────────────────────────
-  document.getElementById('btn-request').addEventListener('click', function () {
-    document.getElementById('access').scrollIntoView({ behavior: 'smooth' });
-  });
-
-  // ── Access form ──────────────────────────────────────────────────────────
-  document.getElementById('dataset-form').addEventListener('submit', function (e) {
-    e.preventDefault();
-    var name        = document.getElementById('req-name').value;
-    var affiliation = document.getElementById('req-affiliation').value;
-    var use         = document.getElementById('req-use').value;
-    var subject = encodeURIComponent('Black Business Research Table \u2014 Dataset Request');
-    var body    = encodeURIComponent(
-      'Name: ' + name + '\n' +
-      'Affiliation: ' + affiliation + '\n' +
-      'Intended Use:\n' + use
-    );
-    window.location.href = 'mailto:kylemcc@umich.edu?subject=' + subject + '&body=' + body;
-  });
-
   // ── Init ─────────────────────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', function () {
     initMap();
     loadData();
+
+    // ── Toggle ───────────────────────────────────────────────────────────────
+    document.getElementById('btn-default').addEventListener('click', function () {
+      if (!table) return;
+      [7, 8, 9, 10].forEach(function (i) { table.column(i).visible(false); });
+      document.getElementById('btn-default').classList.add('active');
+      document.getElementById('btn-expanded').classList.remove('active');
+    });
+
+    document.getElementById('btn-expanded').addEventListener('click', function () {
+      if (!table) return;
+      [7, 8, 9, 10].forEach(function (i) { table.column(i).visible(true); });
+      document.getElementById('btn-expanded').classList.add('active');
+      document.getElementById('btn-default').classList.remove('active');
+    });
+
+    // ── Custom search ────────────────────────────────────────────────────────
+    document.getElementById('table-search').addEventListener('keyup', function () {
+      if (table) table.search(this.value).draw();
+    });
+
+    // ── Request Dataset button ────────────────────────────────────────────────
+    document.getElementById('btn-request').addEventListener('click', function () {
+      document.getElementById('access').scrollIntoView({ behavior: 'smooth' });
+    });
+
+    // ── Access form ──────────────────────────────────────────────────────────
+    document.getElementById('dataset-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var name        = document.getElementById('req-name').value;
+      var affiliation = document.getElementById('req-affiliation').value;
+      var use         = document.getElementById('req-use').value;
+      var subject = encodeURIComponent('Black Business Research Table \u2014 Dataset Request');
+      var body    = encodeURIComponent(
+        'Name: ' + name + '\n' +
+        'Affiliation: ' + affiliation + '\n' +
+        'Intended Use:\n' + use
+      );
+      window.location.href = 'mailto:kylemcc@umich.edu?subject=' + subject + '&body=' + body;
+    });
   });
 
 }());
