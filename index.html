@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Black Business Research Table</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ── Nav ─────────────────────────────────────────────────────────────── -->
+  <nav id="nav">
+    <div class="nav-inner">
+      <span class="nav-title">Black Business Research Table</span>
+      <div class="nav-links">
+        <a href="#about">About</a>
+        <a href="#map-section">Map</a>
+        <a href="#data">Data</a>
+        <a href="#access" class="nav-cta">Request Dataset →</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── About ────────────────────────────────────────────────────────────── -->
+  <section id="about">
+    <div class="section-inner">
+      <div class="section-label">About</div>
+      <h1>The Black Business Research Table</h1>
+      <p class="about-text">
+        A public database of Black-owned businesses in the United States, built from public records,
+        city and state MWBE listings, and open data sources. It is designed for researchers, journalists,
+        policymakers, and anyone who wants to understand the landscape of Black-owned enterprise in America.
+      </p>
+      <p class="about-text">
+        The database is free to access. To download the full dataset, send a request using the form below
+        with your name, affiliation, and intended use. Please cite the database as:
+        McCullers, K. (2026). <em>Black Business Research Table</em> [Database].
+        Retrieved from blackbusinessresearchtable.com.
+      </p>
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-number" id="stat-count">3,775</div>
+          <div class="stat-label">Businesses</div>
+        </div>
+        <div class="stat">
+          <div class="stat-number">NYC</div>
+          <div class="stat-label">Coverage</div>
+        </div>
+        <div class="stat">
+          <div class="stat-number">2025</div>
+          <div class="stat-label">Data Year</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Map ──────────────────────────────────────────────────────────────── -->
+  <section id="map-section">
+    <div class="section-inner">
+      <div class="section-label">Map</div>
+      <div id="map"></div>
+      <p class="map-caption">Click any marker for business details. Businesses without a geocoded address are in the data table below but not shown on the map.</p>
+    </div>
+  </section>
+
+  <!-- ── Data ─────────────────────────────────────────────────────────────── -->
+  <section id="data">
+    <div class="section-inner">
+      <div class="section-label">Data</div>
+      <div class="table-controls">
+        <input type="search" id="table-search" placeholder="Search by name, city, or industry…">
+        <div class="table-actions">
+          <div class="toggle-group">
+            <button id="btn-default" class="toggle-btn active">Default</button>
+            <button id="btn-expanded" class="toggle-btn">Expanded</button>
+          </div>
+          <button id="btn-request" class="btn-primary">Request Dataset →</button>
+        </div>
+      </div>
+      <table id="business-table" class="display"></table>
+    </div>
+  </section>
+
+  <!-- ── Access ───────────────────────────────────────────────────────────── -->
+  <section id="access">
+    <div class="section-inner">
+      <div class="section-label">Request Dataset</div>
+      <h2>Download the Full Database</h2>
+      <p class="access-intro">The dataset is free to access. Fill out the form below and the full CSV will be sent to you within 48 hours.</p>
+      <form id="dataset-form">
+        <div class="form-group">
+          <label for="req-name">Name</label>
+          <input type="text" id="req-name" placeholder="Your full name" required>
+        </div>
+        <div class="form-group">
+          <label for="req-affiliation">Affiliation</label>
+          <input type="text" id="req-affiliation" placeholder="University, organization, or independent" required>
+        </div>
+        <div class="form-group">
+          <label for="req-use">Intended Use</label>
+          <textarea id="req-use" placeholder="Brief description of how you plan to use the data" required></textarea>
+        </div>
+        <button type="submit" class="btn-primary">Submit Request →</button>
+      </form>
+      <div class="citation-block">
+        <div class="citation-label">How to Cite</div>
+        <div class="citation-text">
+          McCullers, K. (2026). <em>Black Business Research Table</em> [Database].
+          Retrieved from blackbusinessresearchtable.com.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Footer ───────────────────────────────────────────────────────────── -->
+  <footer>
+    <div class="footer-inner">
+      <span>Built and maintained by
+        <a href="https://kylemccullers.com" target="_blank" rel="noopener">Kyle McCullers</a>,
+        PhD Candidate, University of Michigan Ross School of Business</span>
+      <span>Last updated September 2025</span>
+    </div>
+  </footer>
+
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
