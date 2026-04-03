@@ -264,17 +264,18 @@ def test_resolve_matches_by_name_and_zip():
 
 
 def test_resolve_logs_uncertain_match():
-    existing = [{"business_id": "existing-uuid", "canonical_name": "acme solutions",
+    # "sunrise bakery" and "sunrise bakeries" normalize to themselves and score ~86.7%
+    # — squarely in the 80-94% near-miss range that must be logged but not matched.
+    existing = [{"business_id": "existing-uuid", "canonical_name": "sunrise bakery",
                  "canonical_zip": "10001", "source_id": "src_a",
                  "source_business_id": "", "first_seen": "2026-Q1",
                  "last_seen": "2026-Q1"}]
-    # "acme solution" is close but not exact
-    records = [_rec("Acme Solution", "10001")]
+    records = [_rec("Sunrise Bakeries", "10001")]
     review_log = []
     result, new_entries = resolve(records, existing, "2026-Q2", review_log)
-    # Either matched (high similarity) or new — either way, review_log captures it
-    # The key is no crash and review_log is populated for near-matches
-    assert isinstance(review_log, list)
+    assert len(review_log) == 1
+    assert review_log[0]["candidate_id"] == "existing-uuid"
+    assert result[0]["business_id"] != "existing-uuid"
 
 
 def test_resolve_different_source_ids_dont_cross_match():
