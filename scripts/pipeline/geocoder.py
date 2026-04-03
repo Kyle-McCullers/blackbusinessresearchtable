@@ -1,5 +1,6 @@
 import csv
 import io
+import time
 import warnings
 
 import requests
@@ -56,12 +57,19 @@ def _geocode_batch(records: list[dict]) -> dict[str, tuple[float, float]]:
             r.get("address_zip", ""),
         ])
 
-    response = requests.post(
-        CENSUS_URL,
-        data={"benchmark": "Public_AR_Current"},
-        files={"addressFile": ("addresses.csv", buf.getvalue(), "text/csv")},
-        timeout=300,
-    )
+    csv_payload = buf.getvalue()
+    for attempt in range(3):
+        response = requests.post(
+            CENSUS_URL,
+            data={"benchmark": "Public_AR_Current"},
+            files={"addressFile": ("addresses.csv", csv_payload, "text/csv")},
+            timeout=300,
+        )
+        if response.ok:
+            break
+        wait = 10 * (2 ** attempt)
+        warnings.warn(f"Census Geocoder returned {response.status_code}; retrying in {wait}s (attempt {attempt + 1}/3)")
+        time.sleep(wait)
     response.raise_for_status()
 
     results: dict[str, tuple[float, float]] = {}
