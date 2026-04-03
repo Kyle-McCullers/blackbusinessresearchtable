@@ -1,5 +1,10 @@
 from abc import ABC, abstractmethod
 
+# Every record dict produced by map_record() has two kinds of keys:
+#   1. The fields in BBRT_FIELDS (standard schema, all default to "").
+#   2. "source_fields" — a dict of every source column not covered by FIELD_MAP.
+#      It is NOT in BBRT_FIELDS. Downstream consumers (DuckDB layer, CSV exporter)
+#      must handle it explicitly as a separate JSON column.
 BBRT_FIELDS = [
     "business_id", "business_name", "owner_name", "year_founded",
     "address_street", "address_city", "address_state", "address_zip",
