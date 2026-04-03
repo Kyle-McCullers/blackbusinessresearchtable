@@ -433,8 +433,8 @@ def test_export_csv_has_header_row(db_with_snapshot, tmp_path):
     export_csv(db_with_snapshot, out, "2026-Q2")
     with open(out) as f:
         reader = csv_module.DictReader(f)
-        assert "business_name" in reader.fieldnames
-        assert "confidence" in reader.fieldnames
+        from pipeline.export import EXPORT_COLUMNS as _EC
+        assert list(reader.fieldnames) == _EC
 
 
 def test_export_csv_deduplicates_confirmed_wins(db_with_snapshot, tmp_path):
@@ -456,6 +456,12 @@ def test_export_csv_row_count_equals_unique_businesses(db_with_snapshot, tmp_pat
     assert len(rows) == 2  # biz-1 and biz-2, deduplicated
 
 
+def test_export_csv_creates_parent_directories(db_with_snapshot, tmp_path):
+    out = tmp_path / "nested" / "dir" / "businesses.csv"
+    export_csv(db_with_snapshot, out, "2026-Q2")
+    assert out.exists()
+
+
 def test_write_summary_creates_file(tmp_path):
     path = tmp_path / "2026-Q2-summary.txt"
     write_summary(path, "2026-Q2", 100, 5, ["src_a"], ["src_b"])
@@ -464,3 +470,4 @@ def test_write_summary_creates_file(tmp_path):
     assert "2026-Q2" in content
     assert "100" in content
     assert "src_b" in content
+    assert "5" in content  # records_dropped
