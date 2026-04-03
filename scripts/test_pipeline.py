@@ -471,3 +471,44 @@ def test_write_summary_creates_file(tmp_path):
     assert "100" in content
     assert "src_b" in content
     assert "5" in content  # records_dropped
+
+
+# ── orchestrator tests ───────────────────────────────────────────────────────
+
+from pipeline.run import current_snapshot_id, discover_adapters
+from datetime import date
+
+
+def test_current_snapshot_id_q1():
+    assert current_snapshot_id(date(2026, 1, 15)) == "2026-Q1"
+
+def test_current_snapshot_id_q2():
+    assert current_snapshot_id(date(2026, 5, 1)) == "2026-Q2"
+
+def test_current_snapshot_id_q3():
+    assert current_snapshot_id(date(2026, 8, 31)) == "2026-Q3"
+
+def test_current_snapshot_id_q4():
+    assert current_snapshot_id(date(2026, 11, 1)) == "2026-Q4"
+
+
+def test_discover_adapters_finds_concrete_classes(tmp_path, monkeypatch):
+    # Write a minimal valid adapter to a temp adapters directory
+    adapters_dir = tmp_path / "adapters"
+    adapters_dir.mkdir()
+    (adapters_dir / "__init__.py").write_text("")
+    (adapters_dir / "test_adapter.py").write_text("""
+import sys
+sys.path.insert(0, str(__file__).replace('/adapters/test_adapter.py', ''))
+from pipeline.adapter_base import AdapterBase
+class TestAdapter(AdapterBase):
+    SOURCE_ID = 'test'; SOURCE_NAME = 'Test'
+    PROGRAM = 'MWBE'; GEOGRAPHY = 'X'; CONFIDENCE = 'confirmed_black'
+    FIELD_MAP = {}
+    def fetch(self): return []
+    def parse(self, raw): return []
+""")
+    monkeypatch.syspath_prepend(str(tmp_path))
+    adapters = discover_adapters(adapters_dir)
+    assert len(adapters) == 1
+    assert adapters[0].SOURCE_ID == "test"
