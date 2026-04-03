@@ -301,3 +301,76 @@ def test_resolve_skips_records_with_missing_source_id():
     assert len(result) == 0
     assert len(new_entries) == 0
     assert len(w) == 1
+
+
+# ── geocoder tests ───────────────────────────────────────────────────────────
+
+from unittest.mock import patch, MagicMock
+from pipeline.geocoder import batch_geocode
+
+
+def _make_census_response(rows: list[str]) -> MagicMock:
+    """rows: list of CSV lines as the Census API would return."""
+    mock = MagicMock()
+    mock.raise_for_status.return_value = None
+    mock.text = "\n".join(rows)
+    return mock
+
+
+def test_batch_geocode_returns_coords_for_matched_records():
+    census_csv = [
+        '"uuid-1","123 Main St, Brooklyn, NY, 11201","Match","Exact","123 Main St, Brooklyn, NY 11201","-73.944,40.678",1234567,L'
+    ]
+    with patch("requests.post", return_value=_make_census_response(census_csv)):
+        result = batch_geocode([{
+            "business_id": "uuid-1",
+            "address_street": "123 Main St",
+            "address_city": "Brooklyn",
+            "address_state": "New York",
+            "address_zip": "11201",
+        }])
+    assert "uuid-1" in result
+    lat, lon = result["uuid-1"]
+    assert abs(lat - 40.678) < 0.001
+    assert abs(lon - (-73.944)) < 0.001
+
+
+def test_batch_geocode_skips_non_match():
+    census_csv = [
+        '"uuid-2","Bad Address, Nowhere, NY, 00000","No_Match","","","",,',
+    ]
+    with patch("requests.post", return_value=_make_census_response(census_csv)):
+        result = batch_geocode([{
+            "business_id": "uuid-2",
+            "address_street": "Bad Address",
+            "address_city": "Nowhere",
+            "address_state": "NY",
+            "address_zip": "00000",
+        }])
+    assert "uuid-2" not in result
+
+
+def test_batch_geocode_returns_empty_dict_for_empty_input():
+    result = batch_geocode([])
+    assert result == {}
+
+
+def test_batch_geocode_filters_records_missing_coords():
+    records = [
+        {"business_id": "has-coords", "latitude": "40.68", "longitude": "-73.94",
+         "address_street": "1 Main", "address_city": "Brooklyn",
+         "address_state": "NY", "address_zip": "11201"},
+        {"business_id": "no-coords", "latitude": "", "longitude": "",
+         "address_street": "2 Main", "address_city": "Brooklyn",
+         "address_state": "NY", "address_zip": "11201"},
+    ]
+    census_csv = [
+        '"no-coords","2 Main, Brooklyn, NY, 11201","Match","Exact","2 Main, Brooklyn, NY 11201","-73.945,40.679",1234568,L'
+    ]
+    # Only no-coords should be submitted; has-coords should be skipped
+    with patch("requests.post", return_value=_make_census_response(census_csv)) as mock_post:
+        result = batch_geocode(records)
+    call_args = mock_post.call_args
+    submitted_csv = call_args.kwargs["files"]["addressFile"][1]
+    assert "no-coords" in submitted_csv
+    assert "has-coords" not in submitted_csv
