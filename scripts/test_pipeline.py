@@ -657,3 +657,116 @@ def test_nyc_adapter_skips_none_ethnicity_rows(nyc_xlsx, tmp_path):
     records = adapter.run()
     names = [r["business_name"] for r in records]
     assert "Mystery Corp" not in names
+
+
+# ── sam_8a adapter tests ─────────────────────────────────────────────────────
+
+import os
+from unittest.mock import patch, MagicMock
+from adapters.sam_8a import SamEightAAdapter
+
+
+def _make_sam_response(entities: list[dict], total: int) -> MagicMock:
+    mock = MagicMock()
+    mock.raise_for_status.return_value = None
+    mock.json.return_value = {"totalRecords": total, "entityData": entities}
+    return mock
+
+
+def _make_entity(uei="UEI001", name="Acme LLC", street="123 Main St",
+                 city="Atlanta", state="GA", zipcode="30301",
+                 url="https://acme.com", naics="541611"):
+    return {
+        "entityRegistration": {"ueiSAM": uei, "legalBusinessName": name},
+        "coreData": {
+            "physicalAddress": {
+                "addressLine1": street,
+                "city": city,
+                "stateOrProvinceCode": state,
+                "zipCode": zipcode,
+            },
+            "entityInformation": {"entityURL": url},
+        },
+        "assertions": {"goodsAndServices": {"primaryNaics": naics}},
+    }
+
+
+def test_sam_adapter_metadata():
+    adapter = SamEightAAdapter(api_key="test-key")
+    assert adapter.SOURCE_ID == "sam_8a"
+    assert adapter.CONFIDENCE == "mbe_unverified"
+    assert adapter.PROGRAM == "8(a)"
+    assert adapter.GEOGRAPHY == "National"
+
+
+def test_sam_adapter_raises_without_api_key(monkeypatch):
+    monkeypatch.delenv("SAM_GOV_API_KEY", raising=False)
+    with pytest.raises(ValueError, match="SAM_GOV_API_KEY"):
+        SamEightAAdapter()
+
+
+def test_sam_adapter_uses_env_api_key(monkeypatch):
+    monkeypatch.setenv("SAM_GOV_API_KEY", "env-key-123")
+    adapter = SamEightAAdapter()
+    assert adapter._api_key == "env-key-123"
+
+
+def test_sam_adapter_paginates_all_pages():
+    entity = _make_entity()
+    # totalRecords=15 → 2 pages (10 + 5)
+    responses = [
+        _make_sam_response([entity] * 10, total=15),
+        _make_sam_response([entity] * 5, total=15),
+    ]
+    with patch("requests.get", side_effect=responses):
+        raw = SamEightAAdapter(api_key="k").fetch()
+    assert len(raw) == 15
+
+
+def test_sam_adapter_maps_standard_fields():
+    entity = _make_entity(
+        uei="UEI999", name="Horizon Consulting LLC",
+        street="123 Main St", city="Atlanta", state="GA",
+        zipcode="30301", url="https://horizon.com", naics="541611",
+    )
+    with patch("requests.get", return_value=_make_sam_response([entity], 1)):
+        records = SamEightAAdapter(api_key="k").run()
+    rec = records[0]
+    assert rec["business_name"] == "Horizon Consulting LLC"
+    assert rec["address_street"] == "123 Main St"
+    assert rec["address_city"] == "Atlanta"
+    assert rec["address_state"] == "GA"
+    assert rec["address_zip"] == "30301"
+    assert rec["website"] == "https://horizon.com"
+    assert rec["naics_code"] == "541611"
+    assert rec["certification"] == "8(a)"
+
+
+def test_sam_adapter_sets_uei_as_source_business_id():
+    entity = _make_entity(uei="MYUEI123")
+    with patch("requests.get", return_value=_make_sam_response([entity], 1)):
+        records = SamEightAAdapter(api_key="k").run()
+    assert records[0]["source_business_id"] == "MYUEI123"
+
+
+def test_sam_adapter_puts_extra_fields_in_source_fields():
+    entity = _make_entity()
+    with patch("requests.get", return_value=_make_sam_response([entity], 1)):
+        records = SamEightAAdapter(api_key="k").run()
+    assert "source_fields" in records[0]
+    assert isinstance(records[0]["source_fields"], dict)
+
+
+def test_sam_adapter_handles_missing_optional_field():
+    # entityURL missing → website should be ""
+    entity = _make_entity()
+    del entity["coreData"]["entityInformation"]
+    with patch("requests.get", return_value=_make_sam_response([entity], 1)):
+        records = SamEightAAdapter(api_key="k").run()
+    assert records[0]["website"] == ""
+
+
+def test_sam_adapter_returns_empty_on_zero_results():
+    with patch("requests.get", return_value=_make_sam_response([], 0)):
+        records = SamEightAAdapter(api_key="k").run()
+    assert records == []
