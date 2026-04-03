@@ -33,9 +33,10 @@ jobs:
         working-directory: scripts
         env:
           SAM_GOV_API_KEY: ${{ secrets.SAM_GOV_API_KEY }}
+          SNAPSHOT_ID: ${{ github.event.inputs.snapshot_id }}
         run: |
-          if [ -n "${{ github.event.inputs.snapshot_id }}" ]; then
-            python -m pipeline.run --snapshot-id "${{ github.event.inputs.snapshot_id }}"
+          if [ -n "$SNAPSHOT_ID" ]; then
+            python -m pipeline.run --snapshot-id "$SNAPSHOT_ID"
           else
             python -m pipeline.run
           fi
