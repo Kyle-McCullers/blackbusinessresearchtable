@@ -64,7 +64,10 @@ def discover_adapters(adapters_dir: Path = ADAPTERS_DIR) -> list:
                     and cls is not AdapterBase
                     and cls.SOURCE_ID
                     and cls.__module__ == module.__name__):
-                adapters.append(cls())
+                try:
+                    adapters.append(cls())
+                except (ValueError, FileNotFoundError) as e:
+                    print(f"  [SKIP] {cls.SOURCE_ID}: {e}")
     return adapters
 
 
