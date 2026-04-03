@@ -1,5 +1,6 @@
 import re
 import uuid
+import warnings
 
 from rapidfuzz import fuzz
 
@@ -68,7 +69,6 @@ def resolve(
     for rec in new_records:
         source_id = rec.get("source_id", "")
         if not source_id:
-            import warnings
             warnings.warn(f"Skipping record with missing source_id: {rec.get('business_name')!r}")
             continue
         src_biz_id = rec.get("source_business_id", "")
