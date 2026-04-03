@@ -61,7 +61,7 @@ class SamEightAAdapter(AdapterBase):
         while True:
             params = {
                 "api_key": self._api_key,
-                "sbaBusinessTypeDesc": "8(a) Business Development",
+                "sbaBusinessTypeCode": "A6",
                 "includeSections": "entityRegistration,coreData,assertions",
                 "size": PAGE_SIZE,
                 "page": page,
