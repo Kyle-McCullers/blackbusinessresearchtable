@@ -1,20 +1,27 @@
 """
 Maryland MBE (Minority Business Enterprise) Program adapter.
 
-Source: MDOT OMBE certified vendor directory via B2Gnow/Gob2G portal.
+Source: MDOT OMBE certified vendor directory — B2Gnow/Gob2G CSV export.
 URL: https://marylandmdbe.gob2g.com/FrontEnd/searchcertifieddirectory.asp
-Filter: Minority Status = "African American" + "African American / Female"
+Filter: Minority Status in {"African American", "African American / Female"}
 Confidence: confirmed_black — race/ethnicity is an explicit certification field.
 
-Data access: The portal requires a human-triggered download (client-side CAPTCHA).
-Download the filtered CSV quarterly and point this adapter at the file:
+File format notes:
+- First 5 rows are metadata; row 5 (0-indexed) is the header.
+- Encoding: latin-1 (the file uses Windows-1252 smart quotes).
+- Each firm appears once per certification type (MBE, DBE, SBE, ACDBE).
+  Deduplication is done on Certification Number — one record per firm.
+- Zip codes have a leading tab character; stripped in fetch().
+
+How to download the file quarterly:
   1. Go to https://marylandmdbe.gob2g.com/FrontEnd/searchcertifieddirectory.asp
-  2. Under "Search by Reference → Minority Status", select:
-       "African American" AND "African American / Female"
-  3. Click Search, then "Download to CSV" (enter the on-screen code)
-  4. Set MD_MBE_FILE env var or pass file_path= to the adapter constructor.
+  2. Under "Search by Reference → Minority Status", hold Cmd and select both
+     "African American" AND "African American / Female"
+  3. Click Search, enter on-screen code, click "Download to CSV"
+  4. Set MD_MBE_FILE env var to the downloaded path.
 """
 import csv
+import io
 import os
 import sys
 from datetime import date
@@ -24,6 +31,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from pipeline.adapter_base import AdapterBase
 
 DEFAULT_FILE_ENV = "MD_MBE_FILE"
+METADATA_ROWS = 5  # rows before the header row in the MDOT CSV export
+ENCODING = "latin-1"
+
+# Minority Status values that indicate African American / Black ownership
+AA_STATUSES = {"African American", "African American / Female"}
 
 
 class MdMbeAdapter(AdapterBase):
@@ -33,17 +45,15 @@ class MdMbeAdapter(AdapterBase):
     GEOGRAPHY   = "Maryland"
     CONFIDENCE  = "confirmed_black"
 
-    # B2Gnow export column names (from marylandmdbe.gob2g.com CSV export).
-    # Column names are quoted strings; leading/trailing spaces stripped in fetch().
     FIELD_MAP = {
-        "Firm Name":      "business_name",
-        "Address":        "address_street",
-        "City":           "address_city",
-        "State":          "address_state",
-        "Zip":            "address_zip",
-        "Phone":          "phone",
-        "Email":          "email",
-        "Web Site":       "website",
+        "Company Name":      "business_name",
+        "Physical Address":  "address_street",
+        "City":              "address_city",
+        "State":             "address_state",
+        "Zip":               "address_zip",
+        "Phone":             "phone",
+        "Email":             "email",
+        "Website":           "website",
     }
 
     def __init__(self, file_path: Path = None):
@@ -60,21 +70,52 @@ class MdMbeAdapter(AdapterBase):
             raise FileNotFoundError(f"Maryland MBE file not found: {self._file_path}")
 
     def fetch(self) -> list[dict]:
-        """Load the pre-downloaded B2Gnow CSV export."""
+        """
+        Load the MDOT CSV export.
+
+        - Skips the 5-row metadata header.
+        - Filters for African American / African American Female ownership.
+        - Deduplicates on Certification Number (each firm appears once per
+          cert type; we keep the first occurrence).
+        """
+        with open(self._file_path, encoding=ENCODING) as f:
+            lines = f.readlines()
+
+        data = io.StringIO("".join(lines[METADATA_ROWS:]))
+        reader = csv.DictReader(data)
+
+        seen_cert_numbers = set()
         rows = []
-        with open(self._file_path, newline="", encoding="utf-8-sig") as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                rows.append({k.strip(): v.strip() if isinstance(v, str) else v
-                              for k, v in row.items()})
+        for raw in reader:
+            # Normalize all keys and values
+            row = {k.strip(): (v.strip() if isinstance(v, str) else ("" if v is None else v))
+                   for k, v in raw.items() if k}
+            # Strip leading tab from zip codes
+            if "Zip" in row:
+                row["Zip"] = row["Zip"].strip()
+            # Filter to African American owners
+            if row.get("Minority Status") not in AA_STATUSES:
+                continue
+            # Deduplicate by Certification Number
+            cert_num = row.get("Certification Number", "")
+            if cert_num in seen_cert_numbers:
+                continue
+            seen_cert_numbers.add(cert_num)
+            rows.append(row)
+
         return rows
 
     def parse(self, raw: list[dict]) -> list[dict]:
         records = []
         for source_row in raw:
             record = self.map_record(source_row)
-            # Firm ID / VendorID is the stable identifier in B2Gnow exports
-            record["source_business_id"] = source_row.get("Firm ID", "").strip()
+
+            # Combine owner first + last name
+            first = source_row.get("Owner First", "").strip()
+            last = source_row.get("Owner Last", "").strip()
+            record["owner_name"] = " ".join(filter(None, [first, last]))
+
+            record["source_business_id"] = source_row.get("Certification Number", "").strip()
             record["certification"] = "MBE"
             record["last_verified"] = str(date.today())
             records.append(record)
