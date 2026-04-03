@@ -21,7 +21,8 @@ from pipeline.adapter_base import AdapterBase
 
 SAM_API_URL = "https://api.sam.gov/entity-information/v3/entities"
 PAGE_SIZE = 10  # SAM.gov API maximum
-REQUEST_DELAY = 0.25  # seconds between pages — stay well under rate limit
+REQUEST_DELAY = 1.0  # seconds between pages
+_RETRY_WAITS = [30, 60, 120]  # backoff on 429 Too Many Requests
 
 
 class SamEightAAdapter(AdapterBase):
@@ -66,8 +67,7 @@ class SamEightAAdapter(AdapterBase):
                 "size": PAGE_SIZE,
                 "page": page,
             }
-            response = requests.get(SAM_API_URL, params=params, timeout=60)
-            response.raise_for_status()
+            response = _get_with_retry(SAM_API_URL, params)
             data = response.json()
 
             total = data.get("totalRecords", 0)
@@ -91,6 +91,21 @@ class SamEightAAdapter(AdapterBase):
             record["last_verified"] = str(date.today())
             records.append(record)
         return records
+
+
+def _get_with_retry(url: str, params: dict):
+    """GET with retry on 429 Too Many Requests."""
+    for wait in _RETRY_WAITS:
+        response = requests.get(url, params=params, timeout=60)
+        if response.status_code != 429:
+            response.raise_for_status()
+            return response
+        warnings.warn(f"SAM.gov 429 — waiting {wait}s before retry")
+        time.sleep(wait)
+    # Final attempt — let raise_for_status() propagate
+    response = requests.get(url, params=params, timeout=60)
+    response.raise_for_status()
+    return response
 
 
 def _flatten(entity: dict) -> dict:
