@@ -1,0 +1,8 @@
+BBRT Quarterly Pipeline — 2026-Q2
+Run date: 2026-04-02
+
+Records in snapshot: 3775
+Records dropped from prior snapshot: 0
+
+Sources run (1): nyc_mwbe
+Sources failed (0): none
