@@ -521,3 +521,116 @@ class TestAdapter(AdapterBase):
     adapters = discover_adapters(adapters_dir)
     assert len(adapters) == 1
     assert adapters[0].SOURCE_ID == "test"
+
+
+# ── nyc_mwbe adapter tests ───────────────────────────────────────────────────
+
+import openpyxl
+from adapters.nyc_mwbe import NycMwbeAdapter
+
+
+@pytest.fixture
+def nyc_xlsx(tmp_path):
+    """Minimal NYC MWBE xlsx — same format as the existing sample_xlsx fixture."""
+    filepath = tmp_path / "nyc_mwbe.xlsx"
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.append(["Export Date:", "09/09/2025"])
+    ws.append(["Matching Records:", 2])
+    ws.append(["Search Parameters"])
+    ws.append(["codecategory", "both"])
+    ws.append([None])
+    ws.append([
+        "Account Number", "Vendor Formal Name", "Vendor DBA",
+        "First Name", "Last Name", "Telephone", "Email",
+        "Business Description", "Certification", "Certification Renewal Date",
+        "Ethnicity", "Address Line 1", "Address Line 2", "City", "State", "Zip",
+        "Mailing Address Line 1", "Mailing Address Line 2", "Mailing City",
+        "Mailing State", "Mailing Zip", "Website", "Date of Establishment",
+        "Aggregate Bonding Limit", "Signatory to Union Contract(s)",
+        "6 digit NAICS code", "NAICS Sector", "NAICS Subsector", "NAICS Title",
+        "Types of Construction Projects Performed", "NIGP codes",
+        "Largest Value of Contract"
+    ])
+    ws.append([
+        "ACC001", "Horizon Consulting LLC", "", "Jane", "Doe", "212-555-0001",
+        "jane@horizon.com", "Management consulting services.", "MBE", "2026-01-01",
+        "Black", "123 Main St", "", "Brooklyn", "New York", "11201",
+        "", "", "", "", "", "https://horizon.com", "2015",
+        "", "", "561110", "Services", "Administrative", "Management Consulting",
+        "", "", ""
+    ])
+    ws.append([
+        "ACC002", "BuildRight Inc", "", "Marcus", "Johnson", "718-555-0002",
+        "", "General contractor.", "M/WBE", "2026-01-01",
+        "Black", "456 Atlantic Ave", "", "Bronx", "New York", "10451",
+        "", "", "", "", "", "", None,
+        "", "", "236220", "Construction", "Building Construction", "Commercial",
+        "", "", ""
+    ])
+    ws.append([
+        "ACC003", "Other Corp", "", "Ana", "Lopez", "", "",
+        "Non-black business.", "MBE", "2026-01-01",
+        "Hispanic", "789 Broadway", "", "Manhattan", "New York", "10013",
+        "", "", "", "", "", "", "2020",
+        "", "", "541511", "Technology", "Software", "Custom Software",
+        "", "", ""
+    ])
+    wb.save(filepath)
+    return filepath
+
+
+def test_nyc_adapter_metadata():
+    adapter = NycMwbeAdapter()
+    assert adapter.SOURCE_ID == "nyc_mwbe"
+    assert adapter.CONFIDENCE == "confirmed_black"
+    assert adapter.PROGRAM == "MWBE"
+
+
+def test_nyc_adapter_filters_to_black_only(nyc_xlsx):
+    adapter = NycMwbeAdapter(source_file=nyc_xlsx)
+    records = adapter.run()
+    assert len(records) == 2
+    names = [r["business_name"] for r in records]
+    assert "Other Corp" not in names
+
+
+def test_nyc_adapter_maps_standard_fields(nyc_xlsx):
+    adapter = NycMwbeAdapter(source_file=nyc_xlsx)
+    records = adapter.run()
+    rec = next(r for r in records if r["business_name"] == "Horizon Consulting LLC")
+    assert rec["owner_name"] == "Jane Doe"
+    assert rec["address_street"] == "123 Main St"
+    assert rec["address_city"] == "Brooklyn"
+    assert rec["address_state"] == "New York"
+    assert rec["address_zip"] == "11201"
+    assert rec["industry"] == "Services"
+    assert rec["naics_code"] == "561110"
+    assert rec["certification"] == "MBE"
+    assert rec["website"] == "https://horizon.com"
+    assert rec["year_founded"] == "2015"
+    assert rec["phone"] == "212-555-0001"
+    assert rec["email"] == "jane@horizon.com"
+    assert rec["source_business_id"] == "ACC001"
+
+
+def test_nyc_adapter_puts_extra_columns_in_source_fields(nyc_xlsx):
+    adapter = NycMwbeAdapter(source_file=nyc_xlsx)
+    records = adapter.run()
+    rec = records[0]
+    sf = rec["source_fields"]
+    # Columns not in FIELD_MAP should land in source_fields
+    assert "NAICS Title" in sf or "Vendor DBA" in sf
+
+
+def test_nyc_adapter_handles_missing_year(nyc_xlsx):
+    adapter = NycMwbeAdapter(source_file=nyc_xlsx)
+    records = adapter.run()
+    rec = next(r for r in records if r["business_name"] == "BuildRight Inc")
+    assert rec["year_founded"] == ""
+
+
+def test_nyc_adapter_sets_last_verified(nyc_xlsx):
+    adapter = NycMwbeAdapter(source_file=nyc_xlsx)
+    records = adapter.run()
+    assert records[0]["last_verified"] == "2025-09-09"
