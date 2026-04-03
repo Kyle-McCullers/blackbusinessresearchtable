@@ -62,7 +62,8 @@ def discover_adapters(adapters_dir: Path = ADAPTERS_DIR) -> list:
         for _, cls in inspect.getmembers(module, inspect.isclass):
             if (issubclass(cls, AdapterBase)
                     and cls is not AdapterBase
-                    and cls.SOURCE_ID):
+                    and cls.SOURCE_ID
+                    and cls.__module__ == module.__name__):
                 adapters.append(cls())
     return adapters
 

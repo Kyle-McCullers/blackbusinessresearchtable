@@ -491,6 +491,14 @@ def test_current_snapshot_id_q3():
 def test_current_snapshot_id_q4():
     assert current_snapshot_id(date(2026, 11, 1)) == "2026-Q4"
 
+def test_current_snapshot_id_q1_boundary():
+    assert current_snapshot_id(date(2026, 3, 31)) == "2026-Q1"
+    assert current_snapshot_id(date(2026, 4, 1)) == "2026-Q2"
+
+def test_current_snapshot_id_year_boundary():
+    assert current_snapshot_id(date(2026, 12, 31)) == "2026-Q4"
+    assert current_snapshot_id(date(2027, 1, 1)) == "2027-Q1"
+
 
 def test_discover_adapters_finds_concrete_classes(tmp_path, monkeypatch):
     # Write a minimal valid adapter to a temp adapters directory
@@ -499,7 +507,8 @@ def test_discover_adapters_finds_concrete_classes(tmp_path, monkeypatch):
     (adapters_dir / "__init__.py").write_text("")
     (adapters_dir / "test_adapter.py").write_text("""
 import sys
-sys.path.insert(0, str(__file__).replace('/adapters/test_adapter.py', ''))
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 from pipeline.adapter_base import AdapterBase
 class TestAdapter(AdapterBase):
     SOURCE_ID = 'test'; SOURCE_NAME = 'Test'
