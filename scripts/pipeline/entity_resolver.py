@@ -20,9 +20,9 @@ def normalize_name(name: str) -> str:
 
 
 def normalize_zip(zip_code: str) -> str:
-    """Return first 5 digits, zero-padded."""
+    """Return first 5 digits, zero-padded. Returns '' if no digits found."""
     digits = re.sub(r"[^0-9]", "", str(zip_code))[:5]
-    return digits.zfill(5)
+    return digits.zfill(5) if digits else ""
 
 
 def resolve(
@@ -42,6 +42,8 @@ def resolve(
 
     Returns:
       (augmented_records, new_registry_entries)
+
+    Note: review_log is mutated in place with near-miss entries (80–94% similarity).
     """
     # Build O(1) lookups
     by_src_biz_id: dict[tuple, str] = {}   # (source_id, source_business_id) -> business_id
@@ -65,6 +67,10 @@ def resolve(
 
     for rec in new_records:
         source_id = rec.get("source_id", "")
+        if not source_id:
+            import warnings
+            warnings.warn(f"Skipping record with missing source_id: {rec.get('business_name')!r}")
+            continue
         src_biz_id = rec.get("source_business_id", "")
         can_name = normalize_name(rec.get("business_name", ""))
         can_zip = normalize_zip(rec.get("address_zip", ""))
@@ -80,12 +86,12 @@ def resolve(
             business_id = by_name_zip.get((source_id, can_name, can_zip))
 
         # Priority 3: fuzzy name match within same source and zip
-        if not business_id and can_name:
+        if not business_id and can_name and can_zip:
             candidates = by_zip.get((source_id, can_zip), [])
             best_score = 0
             best_entry = None
             for entry in candidates:
-                score = fuzz.ratio(can_name, entry["canonical_name"])
+                score = fuzz.token_sort_ratio(can_name, entry["canonical_name"])
                 if score > best_score:
                     best_score = score
                     best_entry = entry

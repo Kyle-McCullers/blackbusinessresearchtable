@@ -288,3 +288,16 @@ def test_resolve_different_source_ids_dont_cross_match():
     review_log = []
     result, new_entries = resolve(records, existing, "2026-Q2", review_log)
     assert result[0]["business_id"] != "existing-uuid"
+
+
+def test_resolve_skips_records_with_missing_source_id():
+    records = [{"business_name": "Some Biz", "address_zip": "10001",
+                "source_business_id": "", "source_id": ""}]
+    review_log = []
+    import warnings
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        result, new_entries = resolve(records, [], "2026-Q2", review_log)
+    assert len(result) == 0
+    assert len(new_entries) == 0
+    assert len(w) == 1
