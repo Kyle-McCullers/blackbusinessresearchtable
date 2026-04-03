@@ -771,3 +771,260 @@ def test_sam_adapter_returns_empty_on_zero_results():
     with patch("requests.get", return_value=_make_sam_response([], 0)):
         records = SamEightAAdapter(api_key="k").run()
     assert records == []
+
+
+# ── tx_hub adapter tests ──────────────────────────────────────────────────────
+
+import csv
+import io
+from adapters.tx_hub import TxHubAdapter
+
+
+def _make_hub_csv(rows: list[dict]) -> str:
+    """Build a CSV string in Texas HUB format from a list of dicts."""
+    fieldnames = [
+        "VENDOR ID NUMBER", " VENDOR NAME", " VENDOR ADDRESS LINE 1", "VENDOR ADDRESS LINE 2",
+        "CITY", "STATE", "ZIP CODE", " FOREIGN ADDRESS", "PHONE NUMBER", " FAX NUMBER",
+        "GENDER", "ELIGIBILITY CODE", " STATUS CODE", "COUNTY", "BUSINESS DESCRIPTION",
+        " VENDOR NUMBER", "EXPIRATION DATE", " CONTACT NAME", "TEXAS OFFICE FLAG",
+        "INTERNET ADDRESS", " QISV FLAG", "SDV FLAG", " SMALL BUSINESS FLAG",
+    ]
+    buf = io.StringIO()
+    writer = csv.DictWriter(buf, fieldnames=fieldnames, extrasaction="ignore")
+    writer.writeheader()
+    writer.writerows(rows)
+    return buf.getvalue()
+
+
+def _make_hub_row(vendor_id="1000000000001", name="Acme Black LLC",
+                  street="100 Main St", city="Houston", state="TX",
+                  zipcode="77001", phone="713-555-0100", website="https://acme.com",
+                  eligibility="BL", status="D", description="Consulting services"):
+    return {
+        "VENDOR ID NUMBER": vendor_id,
+        " VENDOR NAME": name,
+        " VENDOR ADDRESS LINE 1": street,
+        "VENDOR ADDRESS LINE 2": "",
+        "CITY": city,
+        "STATE": state,
+        "ZIP CODE": zipcode,
+        " FOREIGN ADDRESS": "USA",
+        "PHONE NUMBER": phone,
+        " FAX NUMBER": "",
+        "GENDER": "M",
+        "ELIGIBILITY CODE": eligibility,
+        " STATUS CODE": status,
+        "COUNTY": "HARRIS",
+        "BUSINESS DESCRIPTION": description,
+        " VENDOR NUMBER": "123456",
+        "EXPIRATION DATE": "05-JAN-2026",
+        " CONTACT NAME": "Jane Smith",
+        "TEXAS OFFICE FLAG": "Y",
+        "INTERNET ADDRESS": website,
+        " QISV FLAG": "",
+        "SDV FLAG": "",
+        " SMALL BUSINESS FLAG": "Y",
+    }
+
+
+def _mock_hub_response(rows: list[dict]) -> MagicMock:
+    mock = MagicMock()
+    mock.raise_for_status.return_value = None
+    mock.text = _make_hub_csv(rows)
+    return mock
+
+
+def test_tx_hub_adapter_metadata():
+    adapter = TxHubAdapter()
+    assert adapter.SOURCE_ID == "tx_hub"
+    assert adapter.CONFIDENCE == "confirmed_black"
+    assert adapter.PROGRAM == "HUB"
+    assert adapter.GEOGRAPHY == "Texas"
+
+
+def test_tx_hub_filters_bl_only():
+    rows = [
+        _make_hub_row(eligibility="BL", name="Black Firm"),
+        _make_hub_row(eligibility="HI", name="Hispanic Firm"),
+        _make_hub_row(eligibility="AS", name="Asian Firm"),
+    ]
+    with patch("requests.get", return_value=_mock_hub_response(rows)):
+        raw = TxHubAdapter().fetch()
+    assert len(raw) == 1
+    assert raw[0]["VENDOR NAME"] == "Black Firm"
+
+
+def test_tx_hub_maps_standard_fields():
+    row = _make_hub_row(
+        name="Houston Consulting LLC", street="100 Main St", city="Houston",
+        state="TX", zipcode="77001", phone="713-555-0100", website="https://hc.com",
+        description="Management consulting",
+    )
+    with patch("requests.get", return_value=_mock_hub_response([row])):
+        records = TxHubAdapter().run()
+    rec = records[0]
+    assert rec["business_name"] == "Houston Consulting LLC"
+    assert rec["address_street"] == "100 Main St"
+    assert rec["address_city"] == "Houston"
+    assert rec["address_state"] == "TX"
+    assert rec["address_zip"] == "77001"
+    assert rec["phone"] == "713-555-0100"
+    assert rec["website"] == "https://hc.com"
+    assert rec["description"] == "Management consulting"
+    assert rec["certification"] == "HUB"
+
+
+def test_tx_hub_sets_vendor_id_as_source_business_id():
+    row = _make_hub_row(vendor_id="9876543210001")
+    with patch("requests.get", return_value=_mock_hub_response([row])):
+        records = TxHubAdapter().run()
+    assert records[0]["source_business_id"] == "9876543210001"
+
+
+def test_tx_hub_preserves_status_in_source_fields():
+    row = _make_hub_row(status="D")
+    with patch("requests.get", return_value=_mock_hub_response([row])):
+        records = TxHubAdapter().run()
+    assert "source_fields" in records[0]
+    assert records[0]["source_fields"].get("STATUS CODE") == "D"
+
+
+def test_tx_hub_returns_empty_on_no_bl_records():
+    rows = [_make_hub_row(eligibility="HI"), _make_hub_row(eligibility="WO")]
+    with patch("requests.get", return_value=_mock_hub_response(rows)):
+        records = TxHubAdapter().run()
+    assert records == []
+
+
+def test_tx_hub_strips_column_whitespace():
+    # Columns like ' VENDOR NAME' and ' STATUS CODE' have leading spaces in the raw CSV
+    row = _make_hub_row(name="  Spaced Name  ")
+    with patch("requests.get", return_value=_mock_hub_response([row])):
+        raw = TxHubAdapter().fetch()
+    # After stripping, the key should be clean and value accessible
+    assert "VENDOR NAME" in raw[0]
+
+
+# ── md_mbe adapter tests ──────────────────────────────────────────────────────
+
+import tempfile
+from adapters.md_mbe import MdMbeAdapter
+
+
+def _make_md_csv(rows: list[dict]) -> str:
+    """Build a CSV string in Maryland B2Gnow export format."""
+    fieldnames = [
+        "Firm ID", "Firm Name", "DBA Name", "Certification Type", "Minority Status",
+        "Address", "City", "State", "Zip", "County", "Phone", "Email", "Web Site",
+        "Contact First Name", "Contact Last Name", "NAICS Codes",
+    ]
+    buf = io.StringIO()
+    writer = csv.DictWriter(buf, fieldnames=fieldnames, extrasaction="ignore")
+    writer.writeheader()
+    writer.writerows(rows)
+    return buf.getvalue()
+
+
+def _make_md_row(firm_id="MD001", name="Baltimore Tech LLC",
+                 street="200 Light St", city="Baltimore", state="MD",
+                 zipcode="21202", phone="410-555-0200", email="info@baltech.com",
+                 website="https://baltech.com", minority_status="African American",
+                 cert_type="MBE"):
+    return {
+        "Firm ID": firm_id,
+        "Firm Name": name,
+        "DBA Name": "",
+        "Certification Type": cert_type,
+        "Minority Status": minority_status,
+        "Address": street,
+        "City": city,
+        "State": state,
+        "Zip": zipcode,
+        "County": "Baltimore City",
+        "Phone": phone,
+        "Email": email,
+        "Web Site": website,
+        "Contact First Name": "John",
+        "Contact Last Name": "Doe",
+        "NAICS Codes": "541511",
+    }
+
+
+def test_md_mbe_adapter_metadata(tmp_path):
+    csv_file = tmp_path / "md_mbe.csv"
+    csv_file.write_text(_make_md_csv([_make_md_row()]))
+    adapter = MdMbeAdapter(file_path=csv_file)
+    assert adapter.SOURCE_ID == "md_mbe"
+    assert adapter.CONFIDENCE == "confirmed_black"
+    assert adapter.PROGRAM == "MBE"
+    assert adapter.GEOGRAPHY == "Maryland"
+
+
+def test_md_mbe_raises_without_file(monkeypatch):
+    monkeypatch.delenv("MD_MBE_FILE", raising=False)
+    with pytest.raises(ValueError, match="MD_MBE_FILE"):
+        MdMbeAdapter()
+
+
+def test_md_mbe_uses_env_file_path(monkeypatch, tmp_path):
+    csv_file = tmp_path / "md_mbe.csv"
+    csv_file.write_text(_make_md_csv([_make_md_row()]))
+    monkeypatch.setenv("MD_MBE_FILE", str(csv_file))
+    adapter = MdMbeAdapter()
+    assert adapter._file_path == csv_file
+
+
+def test_md_mbe_maps_standard_fields(tmp_path):
+    row = _make_md_row(
+        name="Baltimore Tech LLC", street="200 Light St", city="Baltimore",
+        state="MD", zipcode="21202", phone="410-555-0200",
+        email="info@baltech.com", website="https://baltech.com",
+    )
+    csv_file = tmp_path / "md_mbe.csv"
+    csv_file.write_text(_make_md_csv([row]))
+    records = MdMbeAdapter(file_path=csv_file).run()
+    rec = records[0]
+    assert rec["business_name"] == "Baltimore Tech LLC"
+    assert rec["address_street"] == "200 Light St"
+    assert rec["address_city"] == "Baltimore"
+    assert rec["address_state"] == "MD"
+    assert rec["address_zip"] == "21202"
+    assert rec["phone"] == "410-555-0200"
+    assert rec["email"] == "info@baltech.com"
+    assert rec["website"] == "https://baltech.com"
+    assert rec["certification"] == "MBE"
+
+
+def test_md_mbe_sets_firm_id_as_source_business_id(tmp_path):
+    row = _make_md_row(firm_id="MD99999")
+    csv_file = tmp_path / "md_mbe.csv"
+    csv_file.write_text(_make_md_csv([row]))
+    records = MdMbeAdapter(file_path=csv_file).run()
+    assert records[0]["source_business_id"] == "MD99999"
+
+
+def test_md_mbe_puts_extra_fields_in_source_fields(tmp_path):
+    row = _make_md_row()
+    csv_file = tmp_path / "md_mbe.csv"
+    csv_file.write_text(_make_md_csv([row]))
+    records = MdMbeAdapter(file_path=csv_file).run()
+    assert "source_fields" in records[0]
+    assert isinstance(records[0]["source_fields"], dict)
+    # Minority Status is not in FIELD_MAP → should be in source_fields
+    assert "Minority Status" in records[0]["source_fields"]
+
+
+def test_md_mbe_handles_empty_file(tmp_path):
+    fieldnames = ["Firm ID", "Firm Name", "Address", "City", "State", "Zip",
+                  "Phone", "Email", "Web Site", "DBA Name", "Certification Type",
+                  "Minority Status", "County", "Contact First Name",
+                  "Contact Last Name", "NAICS Codes"]
+    csv_file = tmp_path / "md_mbe.csv"
+    csv_file.write_text(",".join(fieldnames) + "\n")
+    records = MdMbeAdapter(file_path=csv_file).run()
+    assert records == []
+
+
+def test_md_mbe_raises_file_not_found():
+    with pytest.raises(FileNotFoundError):
+        MdMbeAdapter(file_path=Path("/nonexistent/md_mbe.csv"))
