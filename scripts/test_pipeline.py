@@ -395,3 +395,72 @@ def test_batch_geocode_handles_malformed_response_row():
         ])
     assert "uuid-3" not in result  # malformed coords should be skipped
     assert "uuid-4" in result      # valid row should still be processed
+
+
+# ── export tests ─────────────────────────────────────────────────────────────
+
+import csv as csv_module
+from pipeline.export import export_csv, write_summary
+from pipeline.db import open_db, write_businesses, write_snapshot_meta
+
+
+@pytest.fixture
+def db_with_snapshot(tmp_path):
+    db_path = tmp_path / "test.duckdb"
+    con = open_db(db_path)
+    records = [
+        {**_make_record(business_id="biz-1", business_name="Alpha Biz",
+                        confidence="confirmed_black", source_id="src_a")},
+        {**_make_record(business_id="biz-2", business_name="Beta Biz",
+                        confidence="mbe_unverified", source_id="src_b")},
+        # biz-1 also appears in src_b as mbe_unverified — confirmed should win
+        {**_make_record(business_id="biz-1", business_name="Alpha Biz",
+                        confidence="mbe_unverified", source_id="src_b")},
+    ]
+    write_businesses(con, records, "2026-Q2")
+    write_snapshot_meta(con, "2026-Q2", 2, 0, ["src_a", "src_b"], [])
+    return con
+
+
+def test_export_csv_creates_file(db_with_snapshot, tmp_path):
+    out = tmp_path / "businesses.csv"
+    export_csv(db_with_snapshot, out, "2026-Q2")
+    assert out.exists()
+
+
+def test_export_csv_has_header_row(db_with_snapshot, tmp_path):
+    out = tmp_path / "businesses.csv"
+    export_csv(db_with_snapshot, out, "2026-Q2")
+    with open(out) as f:
+        reader = csv_module.DictReader(f)
+        assert "business_name" in reader.fieldnames
+        assert "confidence" in reader.fieldnames
+
+
+def test_export_csv_deduplicates_confirmed_wins(db_with_snapshot, tmp_path):
+    out = tmp_path / "businesses.csv"
+    export_csv(db_with_snapshot, out, "2026-Q2")
+    with open(out) as f:
+        rows = list(csv_module.DictReader(f))
+    # biz-1 appears in both sources — confirmed_black should win
+    biz1_rows = [r for r in rows if r["business_id"] == "biz-1"]
+    assert len(biz1_rows) == 1
+    assert biz1_rows[0]["confidence"] == "confirmed_black"
+
+
+def test_export_csv_row_count_equals_unique_businesses(db_with_snapshot, tmp_path):
+    out = tmp_path / "businesses.csv"
+    export_csv(db_with_snapshot, out, "2026-Q2")
+    with open(out) as f:
+        rows = list(csv_module.DictReader(f))
+    assert len(rows) == 2  # biz-1 and biz-2, deduplicated
+
+
+def test_write_summary_creates_file(tmp_path):
+    path = tmp_path / "2026-Q2-summary.txt"
+    write_summary(path, "2026-Q2", 100, 5, ["src_a"], ["src_b"])
+    assert path.exists()
+    content = path.read_text()
+    assert "2026-Q2" in content
+    assert "100" in content
+    assert "src_b" in content
