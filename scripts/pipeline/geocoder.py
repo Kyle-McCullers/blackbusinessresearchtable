@@ -1,5 +1,6 @@
 import csv
 import io
+import warnings
 
 import requests
 
@@ -43,8 +44,12 @@ def _geocode_batch(records: list[dict]) -> dict[str, tuple[float, float]]:
     buf = io.StringIO()
     writer = csv.writer(buf)
     for r in records:
+        biz_id = r.get("business_id", "").strip()
+        if not biz_id:
+            warnings.warn(f"Skipping record with missing business_id in geocoder: {r.get('business_name')!r}")
+            continue
         writer.writerow([
-            r["business_id"],
+            biz_id,
             r.get("address_street", ""),
             r.get("address_city", ""),
             r.get("address_state", ""),
@@ -60,13 +65,22 @@ def _geocode_batch(records: list[dict]) -> dict[str, tuple[float, float]]:
     response.raise_for_status()
 
     results: dict[str, tuple[float, float]] = {}
+    # Census batch geocoder response format (per Census API docs):
+    # col 0: input record ID
+    # col 1: input address
+    # col 2: match status ("Match" | "No_Match" | "Tie")
+    # col 3: match type ("Exact" | "Non_Exact")
+    # col 4: matched address
+    # col 5: coordinates as "lon,lat"
+    # col 6: TIGER line ID
+    # col 7: side of street
     reader = csv.reader(io.StringIO(response.text))
     for row in reader:
         if len(row) < 6:
             continue
         record_id = row[0].strip()
         match_status = row[2].strip().lower()
-        coords = row[5].strip() if len(row) > 5 else ""
+        coords = row[5].strip()
         if match_status == "match" and coords:
             try:
                 lon_str, lat_str = coords.split(",")

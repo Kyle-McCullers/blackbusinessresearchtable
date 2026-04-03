@@ -351,8 +351,10 @@ def test_batch_geocode_skips_non_match():
 
 
 def test_batch_geocode_returns_empty_dict_for_empty_input():
-    result = batch_geocode([])
+    with patch("requests.post") as mock_post:
+        result = batch_geocode([])
     assert result == {}
+    mock_post.assert_not_called()
 
 
 def test_batch_geocode_filters_records_missing_coords():
@@ -374,3 +376,22 @@ def test_batch_geocode_filters_records_missing_coords():
     submitted_csv = call_args.kwargs["files"]["addressFile"][1]
     assert "no-coords" in submitted_csv
     assert "has-coords" not in submitted_csv
+    assert "no-coords" in result
+    lat, lon = result["no-coords"]
+    assert abs(lat - 40.679) < 0.001
+
+
+def test_batch_geocode_handles_malformed_response_row():
+    census_csv = [
+        '"uuid-3","123 Main St, Brooklyn, NY, 11201","Match","Exact","123 Main St","-73.944,not-a-number",1234567,L',
+        '"uuid-4","456 Oak Ave, Brooklyn, NY, 11201","Match","Exact","456 Oak Ave, Brooklyn","-74.001,40.700",1234568,L',
+    ]
+    with patch("requests.post", return_value=_make_census_response(census_csv)):
+        result = batch_geocode([
+            {"business_id": "uuid-3", "address_street": "123 Main St",
+             "address_city": "Brooklyn", "address_state": "NY", "address_zip": "11201"},
+            {"business_id": "uuid-4", "address_street": "456 Oak Ave",
+             "address_city": "Brooklyn", "address_state": "NY", "address_zip": "11201"},
+        ])
+    assert "uuid-3" not in result  # malformed coords should be skipped
+    assert "uuid-4" in result      # valid row should still be processed
