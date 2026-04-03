@@ -66,16 +66,24 @@ class NycMwbeAdapter(AdapterBase):
     def fetch(self) -> list[dict]:
         """Load xlsx and return list of raw row dicts for Black-owned businesses."""
         wb = openpyxl.load_workbook(self._source_file, read_only=True)
-        ws = wb.active
-        all_rows = list(ws.iter_rows(values_only=True))
-        wb.close()
+        try:
+            ws = wb.active
+            all_rows = list(ws.iter_rows(values_only=True))
+        finally:
+            wb.close()
 
         header = all_rows[XLSX_HEADER_ROW - 1]
         col = {name: i for i, name in enumerate(header) if name}
 
+        if "Ethnicity" not in col:
+            raise ValueError(
+                f"Expected 'Ethnicity' column in header row {XLSX_HEADER_ROW} "
+                f"of {self._source_file}; found columns: {list(col.keys())}"
+            )
+
         raw = []
         for row in all_rows[XLSX_HEADER_ROW:]:
-            if row[col["Ethnicity"]] != "Black":
+            if str(row[col["Ethnicity"]] or "") != "Black":
                 continue
             raw_row = {name: row[idx] for name, idx in col.items()}
             raw.append(raw_row)

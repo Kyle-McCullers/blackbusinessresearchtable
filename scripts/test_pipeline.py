@@ -585,6 +585,7 @@ def test_nyc_adapter_metadata():
     assert adapter.SOURCE_ID == "nyc_mwbe"
     assert adapter.CONFIDENCE == "confirmed_black"
     assert adapter.PROGRAM == "MWBE"
+    assert adapter.GEOGRAPHY == "NYC"
 
 
 def test_nyc_adapter_filters_to_black_only(nyc_xlsx):
@@ -620,7 +621,7 @@ def test_nyc_adapter_puts_extra_columns_in_source_fields(nyc_xlsx):
     rec = records[0]
     sf = rec["source_fields"]
     # Columns not in FIELD_MAP should land in source_fields
-    assert "NAICS Title" in sf or "Vendor DBA" in sf
+    assert "Vendor DBA" in sf
 
 
 def test_nyc_adapter_handles_missing_year(nyc_xlsx):
@@ -634,3 +635,25 @@ def test_nyc_adapter_sets_last_verified(nyc_xlsx):
     adapter = NycMwbeAdapter(source_file=nyc_xlsx)
     records = adapter.run()
     assert records[0]["last_verified"] == "2025-09-09"
+
+
+def test_nyc_adapter_skips_none_ethnicity_rows(nyc_xlsx, tmp_path):
+    # Add a row with None Ethnicity to the existing fixture
+    import openpyxl
+    wb = openpyxl.load_workbook(nyc_xlsx)
+    ws = wb.active
+    # Append a row where Ethnicity (col index 10, 0-based) is None
+    row_data = ["ACC004", "Mystery Corp", "", "Unknown", "Person", "", "",
+                "Unknown business.", "MBE", "2026-01-01",
+                None,  # Ethnicity is None
+                "100 Unknown St", "", "Queens", "New York", "11415",
+                "", "", "", "", "", "", "2010", "", "", "541511",
+                "Technology", "Software", "Custom", "", "", ""]
+    ws.append(row_data)
+    modified_path = tmp_path / "modified.xlsx"
+    wb.save(modified_path)
+
+    adapter = NycMwbeAdapter(source_file=modified_path)
+    records = adapter.run()
+    names = [r["business_name"] for r in records]
+    assert "Mystery Corp" not in names
