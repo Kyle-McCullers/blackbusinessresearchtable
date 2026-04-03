@@ -179,13 +179,14 @@ def write_snapshot_meta(
 def get_registry(con: duckdb.DuckDBPyConnection) -> list[dict]:
     """Return all rows from business_registry as a list of dicts."""
     rows = con.execute(
-        "SELECT business_id, canonical_name, canonical_zip, source_id, source_business_id, first_seen, last_seen FROM business_registry"
+        "SELECT business_id, canonical_name, canonical_zip, source_id, source_business_id, first_seen, last_seen, is_active FROM business_registry"
     ).fetchall()
     return [
         {
             "business_id": r[0], "canonical_name": r[1],
             "canonical_zip": r[2], "source_id": r[3],
             "source_business_id": r[4], "first_seen": r[5], "last_seen": r[6],
+            "is_active": r[7],
         }
         for r in rows
     ]
