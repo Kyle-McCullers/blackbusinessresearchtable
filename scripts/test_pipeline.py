@@ -1028,3 +1028,152 @@ def test_md_mbe_handles_empty_file(tmp_path):
 def test_md_mbe_raises_file_not_found():
     with pytest.raises(FileNotFoundError):
         MdMbeAdapter(file_path=Path("/nonexistent/md_mbe.csv"))
+
+
+# ── in_idoa adapter tests ─────────────────────────────────────────────────────
+
+import openpyxl as _openpyxl
+from adapters.in_idoa import InIdoaAdapter
+
+_IN_HEADERS = [
+    "Company Name", "DBA", "UNSPSC", "UNSPSC Description",
+    "First Name", "LastName", "Mailing Address 1", "Mailing Address 2",
+    "City", "State", "Zip Code", "County", "Application Type",
+    "Ethnic Group", "Certification Date", "Expiration Dte",
+    "Bidder ID", "Email ID", "Phone", "Application Status", "Company Name Upper",
+]
+
+
+def _make_in_xlsx(tmp_path, rows: list[list]) -> Path:
+    """
+    Build an Indiana IDOA-format xlsx fixture.
+    Row 1: title row. Row 2: column headers. Row 3+: data.
+    """
+    wb = _openpyxl.Workbook()
+    ws = wb.active
+    ws.append(["Diversity Certified Businesses", len(rows)] + [None] * 19)
+    ws.append(_IN_HEADERS)
+    for row in rows:
+        ws.append(row)
+    path = tmp_path / "in_idoa.xlsx"
+    wb.save(path)
+    return path
+
+
+def _in_row(company="Acme Black LLC", dba="Acme Black LLC",
+            unspsc="54111500", unspsc_desc="Office supplies",
+            first="Jordan", last="Smith",
+            street="100 N Meridian St", street2=None,
+            city="Indianapolis", state="IN", zipcode="46204",
+            county="Marion", app_type="MBE", ethnic="AFA",
+            cert_date=None, exp_date=None,
+            bidder_id="0000001234", email="jordan@acme.com",
+            phone="317/555-0100", status="CERT", name_upper="ACME BLACK LLC"):
+    return [
+        company, dba, unspsc, unspsc_desc, first, last,
+        street, street2, city, state, zipcode, county,
+        app_type, ethnic, cert_date, exp_date,
+        bidder_id, email, phone, status, name_upper,
+    ]
+
+
+@pytest.fixture()
+def in_xlsx(tmp_path):
+    rows = [
+        _in_row(company="Acme Black LLC", bidder_id="0000001234",
+                first="Jordan", last="Smith", ethnic="AFA"),
+        # Same firm, second UNSPSC code — should be deduplicated away
+        _in_row(company="Acme Black LLC", bidder_id="0000001234",
+                unspsc="54111600", unspsc_desc="Paper products",
+                first="Jordan", last="Smith", ethnic="AFA"),
+        # Different AFA firm
+        _in_row(company="BuildRight Inc", bidder_id="0000005678",
+                first="Alex", last="Johnson",
+                street="200 S Capitol Ave", city="Indianapolis",
+                zipcode="46225", app_type="WBE", ethnic="AFA"),
+        # Non-AFA firm — should be excluded
+        _in_row(company="Other Corp", bidder_id="0000009999",
+                ethnic="CAU"),
+    ]
+    return _make_in_xlsx(tmp_path, rows)
+
+
+def test_in_idoa_metadata():
+    adapter = InIdoaAdapter(file_path=SOURCE_FILE) if False else None
+    # Instantiate without a real file for metadata checks
+    import unittest.mock as _mock
+    with _mock.patch.object(Path, "exists", return_value=True):
+        adapter = InIdoaAdapter(file_path=Path("/fake/path.xlsx"))
+    assert adapter.SOURCE_ID == "in_idoa"
+    assert adapter.CONFIDENCE == "confirmed_black"
+    assert adapter.PROGRAM == "MBE"
+    assert adapter.GEOGRAPHY == "Indiana"
+
+
+def test_in_idoa_filters_to_afa_only(in_xlsx):
+    records = InIdoaAdapter(file_path=in_xlsx).run()
+    names = [r["business_name"] for r in records]
+    assert "Other Corp" not in names
+    assert "Acme Black LLC" in names
+    assert "BuildRight Inc" in names
+
+
+def test_in_idoa_deduplicates_by_bidder_id(in_xlsx):
+    records = InIdoaAdapter(file_path=in_xlsx).run()
+    # Acme Black LLC appears twice in the file (two UNSPSC codes) — only one record
+    acme_records = [r for r in records if r["business_name"] == "Acme Black LLC"]
+    assert len(acme_records) == 1
+
+
+def test_in_idoa_total_count(in_xlsx):
+    records = InIdoaAdapter(file_path=in_xlsx).run()
+    assert len(records) == 2
+
+
+def test_in_idoa_maps_standard_fields(in_xlsx):
+    records = InIdoaAdapter(file_path=in_xlsx).run()
+    rec = next(r for r in records if r["business_name"] == "Acme Black LLC")
+    assert rec["address_street"] == "100 N Meridian St"
+    assert rec["address_city"] == "Indianapolis"
+    assert rec["address_state"] == "IN"
+    assert rec["address_zip"] == "46204"
+    assert rec["email"] == "jordan@acme.com"
+    assert rec["phone"] == "317/555-0100"
+
+
+def test_in_idoa_owner_name(in_xlsx):
+    records = InIdoaAdapter(file_path=in_xlsx).run()
+    rec = next(r for r in records if r["business_name"] == "Acme Black LLC")
+    assert rec["owner_name"] == "Jordan Smith"
+
+
+def test_in_idoa_source_business_id(in_xlsx):
+    records = InIdoaAdapter(file_path=in_xlsx).run()
+    rec = next(r for r in records if r["business_name"] == "Acme Black LLC")
+    assert rec["source_business_id"] == "0000001234"
+
+
+def test_in_idoa_certification_reflects_app_type(in_xlsx):
+    records = InIdoaAdapter(file_path=in_xlsx).run()
+    mbe_rec = next(r for r in records if r["business_name"] == "Acme Black LLC")
+    wbe_rec = next(r for r in records if r["business_name"] == "BuildRight Inc")
+    assert mbe_rec["certification"] == "MBE"
+    assert wbe_rec["certification"] == "WBE"
+
+
+def test_in_idoa_sets_last_verified(in_xlsx):
+    from datetime import date
+    records = InIdoaAdapter(file_path=in_xlsx).run()
+    assert records[0]["last_verified"] == str(date.today())
+
+
+def test_in_idoa_extra_columns_in_source_fields(in_xlsx):
+    records = InIdoaAdapter(file_path=in_xlsx).run()
+    sf = records[0]["source_fields"]
+    assert "Ethnic Group" in sf
+    assert "County" in sf
+
+
+def test_in_idoa_raises_file_not_found():
+    with pytest.raises(FileNotFoundError):
+        InIdoaAdapter(file_path=Path("/nonexistent/in_idoa.xlsx"))
