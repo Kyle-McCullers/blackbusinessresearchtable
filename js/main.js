@@ -19,7 +19,7 @@
 
   // ── Map ────────────────────────────────────────────────────────────────
   function initMap() {
-    map = L.map('map').setView([40.73, -73.93], 11);
+    map = L.map('map').setView([39.5, -98.35], 4);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 18
@@ -137,6 +137,11 @@
         var rows = results.data.filter(function (r) { return r.business_name; });
         var countEl = document.getElementById('stat-count');
         if (countEl) countEl.textContent = rows.length.toLocaleString();
+
+        var states = new Set(rows.map(function (r) { return r.address_state; }).filter(Boolean));
+        var coverageEl = document.getElementById('stat-coverage');
+        if (coverageEl) coverageEl.textContent = states.size + ' State' + (states.size !== 1 ? 's' : '');
+
         addMarkersToMap(rows);
         initTable(rows);
         updateCoverageBar(rows.length);
