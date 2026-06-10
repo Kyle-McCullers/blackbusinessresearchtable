@@ -912,41 +912,41 @@ from adapters.md_mbe import MdMbeAdapter
 
 
 def _make_md_csv(rows: list[dict]) -> str:
-    """Build a CSV string in Maryland B2Gnow export format."""
+    """Build a CSV string in the real MDOT/gob2g export format:
+    5 metadata preamble rows, then the header row, then data rows.
+    (The adapter skips METADATA_ROWS=5 lines before the header.)"""
     fieldnames = [
-        "Firm ID", "Firm Name", "DBA Name", "Certification Type", "Minority Status",
-        "Address", "City", "State", "Zip", "County", "Phone", "Email", "Web Site",
-        "Contact First Name", "Contact Last Name", "NAICS Codes",
+        "Company Name", "Physical Address", "City", "State", "Zip", "Phone",
+        "Email", "Website", "Minority Status", "Certification Number",
+        "Owner First", "Owner Last",
     ]
     buf = io.StringIO()
+    for i in range(5):
+        buf.write(f"MDOT MBE Directory export metadata row {i + 1}\n")
     writer = csv.DictWriter(buf, fieldnames=fieldnames, extrasaction="ignore")
     writer.writeheader()
     writer.writerows(rows)
     return buf.getvalue()
 
 
-def _make_md_row(firm_id="MD001", name="Baltimore Tech LLC",
+def _make_md_row(cert_number="MD001", name="Baltimore Tech LLC",
                  street="200 Light St", city="Baltimore", state="MD",
                  zipcode="21202", phone="410-555-0200", email="info@baltech.com",
                  website="https://baltech.com", minority_status="African American",
-                 cert_type="MBE"):
+                 owner_first="John", owner_last="Doe"):
     return {
-        "Firm ID": firm_id,
-        "Firm Name": name,
-        "DBA Name": "",
-        "Certification Type": cert_type,
-        "Minority Status": minority_status,
-        "Address": street,
+        "Company Name": name,
+        "Physical Address": street,
         "City": city,
         "State": state,
         "Zip": zipcode,
-        "County": "Baltimore City",
         "Phone": phone,
         "Email": email,
-        "Web Site": website,
-        "Contact First Name": "John",
-        "Contact Last Name": "Doe",
-        "NAICS Codes": "541511",
+        "Website": website,
+        "Minority Status": minority_status,
+        "Certification Number": cert_number,
+        "Owner First": owner_first,
+        "Owner Last": owner_last,
     }
 
 
@@ -995,8 +995,8 @@ def test_md_mbe_maps_standard_fields(tmp_path):
     assert rec["certification"] == "MBE"
 
 
-def test_md_mbe_sets_firm_id_as_source_business_id(tmp_path):
-    row = _make_md_row(firm_id="MD99999")
+def test_md_mbe_sets_cert_number_as_source_business_id(tmp_path):
+    row = _make_md_row(cert_number="MD99999")
     csv_file = tmp_path / "md_mbe.csv"
     csv_file.write_text(_make_md_csv([row]))
     records = MdMbeAdapter(file_path=csv_file).run()
@@ -1015,12 +1015,9 @@ def test_md_mbe_puts_extra_fields_in_source_fields(tmp_path):
 
 
 def test_md_mbe_handles_empty_file(tmp_path):
-    fieldnames = ["Firm ID", "Firm Name", "Address", "City", "State", "Zip",
-                  "Phone", "Email", "Web Site", "DBA Name", "Certification Type",
-                  "Minority Status", "County", "Contact First Name",
-                  "Contact Last Name", "NAICS Codes"]
+    # Valid file (5 metadata rows + header) but zero data rows → no records.
     csv_file = tmp_path / "md_mbe.csv"
-    csv_file.write_text(",".join(fieldnames) + "\n")
+    csv_file.write_text(_make_md_csv([]))
     records = MdMbeAdapter(file_path=csv_file).run()
     assert records == []
 
