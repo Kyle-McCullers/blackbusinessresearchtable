@@ -122,7 +122,7 @@ sources:
     ethnicity_values: ["Black American", "Hispanic American", "Asian Pacific American and Pacific Islander", "Iberian Peninsula", "American Indian", "No minority race/ethnicity identified"]
     black_filter_values: ["Black American"]
     tier: 1
-    status: buildable
+    status: built                 # adapter ct_das_smbe.py merged 2026-06-10; 970 records
     record_estimate: 970          # ~970 Black American of 7836 total
     last_checked: "2026-06-10"
   - source_id: or_cobid

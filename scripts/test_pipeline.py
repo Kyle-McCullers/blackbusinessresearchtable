@@ -1236,3 +1236,109 @@ def test_in_idoa_extra_columns_in_source_fields(in_xlsx):
 def test_in_idoa_raises_file_not_found():
     with pytest.raises(FileNotFoundError):
         InIdoaAdapter(file_path=Path("/nonexistent/in_idoa.xlsx"))
+
+
+# ── ct_das_smbe adapter tests ─────────────────────────────────────────────────
+
+from adapters.ct_das_smbe import CtDasSmbeAdapter
+
+_CT_HEADERS = [
+    "vendorname", "business_address1", "townnamecrosswalk_standardized_town",
+    "zip", "county", "business_state", "certification_type",
+    "class_description_detailed", "active_date", "expiration_date", "status",
+    "product", "gs_code", "goods_and_services", "location",
+]
+
+
+def _make_ct_csv(rows: list[dict]) -> str:
+    buf = io.StringIO()
+    writer = csv.DictWriter(buf, fieldnames=_CT_HEADERS, extrasaction="ignore")
+    writer.writeheader()
+    writer.writerows(rows)
+    return buf.getvalue()
+
+
+def _ct_row(vendorname="Down To Earth Consulting LLC",
+            street="27 Siemon Company Drive", city="Watertown",
+            state="CT", zipcode="06795", cert_type="MBE",
+            ethnicity="Black American", gs_code="541330",
+            goods="Engineering Services", product="Geotechnical Services",
+            location="POINT (-73.11257 41.60364)"):
+    return {
+        "vendorname": vendorname, "business_address1": street,
+        "townnamecrosswalk_standardized_town": city, "zip": zipcode,
+        "county": "NA", "business_state": state,
+        "certification_type": cert_type,
+        "class_description_detailed": ethnicity,
+        "active_date": "2028-05-22T00:00:00.000",
+        "expiration_date": "2030-05-21T00:00:00.000", "status": "Certified",
+        "product": product, "gs_code": gs_code, "goods_and_services": goods,
+        "location": location,
+    }
+
+
+def _ct_response(csv_text: str):
+    resp = MagicMock()
+    resp.text = csv_text
+    resp.raise_for_status = MagicMock()
+    return resp
+
+
+def test_ct_filters_to_black_american():
+    csv_text = _make_ct_csv([
+        _ct_row(vendorname="Black Co", ethnicity="Black American"),
+        _ct_row(vendorname="Hisp Co", ethnicity="Hispanic American"),
+        _ct_row(vendorname="Iberian Co", ethnicity="Iberian Peninsula"),
+    ])
+    with patch("requests.get", return_value=_ct_response(csv_text)):
+        records = CtDasSmbeAdapter().run()
+    assert [r["business_name"] for r in records] == ["Black Co"]
+
+
+def test_ct_maps_standard_fields():
+    csv_text = _make_ct_csv([_ct_row(
+        vendorname="Black Co", street="27 Siemon Company Drive",
+        city="Watertown", state="CT", zipcode="06795", gs_code="541330",
+    )])
+    with patch("requests.get", return_value=_ct_response(csv_text)):
+        rec = CtDasSmbeAdapter().run()[0]
+    assert rec["business_name"] == "Black Co"
+    assert rec["address_street"] == "27 Siemon Company Drive"
+    assert rec["address_city"] == "Watertown"
+    assert rec["address_state"] == "CT"
+    assert rec["address_zip"] == "06795"
+    assert rec["naics_code"] == "541330"
+
+
+def test_ct_certification_from_type():
+    csv_text = _make_ct_csv([_ct_row(cert_type="SBE")])
+    with patch("requests.get", return_value=_ct_response(csv_text)):
+        rec = CtDasSmbeAdapter().run()[0]
+    assert rec["certification"] == "SBE"
+
+
+def test_ct_extracts_coords_from_point():
+    csv_text = _make_ct_csv([_ct_row(location="POINT (-73.11257 41.60364)")])
+    with patch("requests.get", return_value=_ct_response(csv_text)):
+        rec = CtDasSmbeAdapter().run()[0]
+    assert rec["latitude"] == "41.60364"
+    assert rec["longitude"] == "-73.11257"
+
+
+def test_ct_handles_missing_point():
+    csv_text = _make_ct_csv([_ct_row(location="")])
+    with patch("requests.get", return_value=_ct_response(csv_text)):
+        rec = CtDasSmbeAdapter().run()[0]
+    assert rec["latitude"] == ""
+    assert rec["longitude"] == ""
+
+
+def test_ct_confidence_is_confirmed_black():
+    assert CtDasSmbeAdapter.CONFIDENCE == "confirmed_black"
+
+
+def test_ct_empty_when_no_black_american():
+    csv_text = _make_ct_csv([_ct_row(ethnicity="Hispanic American")])
+    with patch("requests.get", return_value=_ct_response(csv_text)):
+        records = CtDasSmbeAdapter().run()
+    assert records == []
