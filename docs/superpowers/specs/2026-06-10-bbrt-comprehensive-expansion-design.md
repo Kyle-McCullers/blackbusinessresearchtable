@@ -73,6 +73,10 @@ sources:
     access: csv_download    # csv_download | excel_download | api_socrata | api_rest | portal | pdf | records_request | none
     url: https://...
     ethnicity_field: true   # true → confirmed_black; false → mbe_unverified
+    ethnicity_field_name: "Ethnicity"            # exact column/field name in the source
+    ethnicity_values: ["African American", "Asian American", "Hispanic American", ...]
+                            # ALL distinct values observed in that field, verbatim
+    black_filter_values: ["African American"]    # exact values the adapter counts as Black
     tier: 1
     status: buildable       # built | buildable | blocked | no_data
     status_reason: null     # required when blocked/no_data
@@ -82,6 +86,15 @@ sources:
 
 2. `docs/data-sources/source-inventory.md` — human-readable companion with notes
    per jurisdiction, including dead ends and what unblocking would take.
+
+3. `docs/data-sources/ethnicity-field-audit.md` — the measurement-validity record,
+   one entry per source: the exact ethnicity field name, **every distinct value
+   observed in that field verbatim** (whether the source says "Black", "African
+   American", "Black or African American", a race code, etc.), which values the
+   adapter filters on, and the date checked. This is the QC artifact for auditing
+   what "confirmed_black" operationally means per source, and documents coding
+   decisions for the eventual data appendix. No source is classified
+   `confirmed_black` until its actual values are captured here from real data.
 
 **Status semantics:** `built` = adapter merged; `buildable` = fetchable now;
 `blocked` = exists but not directly fetchable (reason required); `no_data` = no
@@ -102,7 +115,10 @@ worktrees, subagent-driven). Each adapter follows the proven pattern:
 4. Run locally; record count sanity check (> 0, within order-of-magnitude of
    `record_estimate`)
 5. **PR per source** with a standard summary: source name/URL, record count,
-   confidence tier, 5 sample records, any caveats
+   confidence tier, the ethnicity field name + **full list of distinct values
+   observed** + which values are filtered as Black, 5 sample records, any caveats.
+   The same info is appended to `docs/data-sources/ethnicity-field-audit.md` in
+   the PR.
 6. Roadmap entry flipped to `built` in the same PR
 
 PRs are batched so Kyle reviews several in one sitting. After each merged batch,
