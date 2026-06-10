@@ -122,7 +122,7 @@ sources:
     ethnicity_values: ["Black American", "Hispanic American", "Asian Pacific American and Pacific Islander", "Iberian Peninsula", "American Indian", "No minority race/ethnicity identified"]
     black_filter_values: ["Black American"]
     tier: 1
-    status: buildable
+    status: built                 # adapter ct_das_smbe.py merged 2026-06-10; 970 records
     record_estimate: 970          # ~970 Black American of 7836 total
     last_checked: "2026-06-10"
   - source_id: or_cobid
@@ -137,7 +137,8 @@ sources:
     ethnicity_values: ["African American (Black)", "Asian Pacific", "Caucasian (White)", "Hispanic", "Native American (Indian)", "Subcontinent Asian (Asian Indian)", "Other", "Unknown"]
     black_filter_values: ["African American (Black)"]
     tier: 1
-    status: buildable
+    status: blocked
+    status_reason: "Verified 2026-06-10: the 'Download to Excel' is a session-bound form POST (per-session XID in the form action), not a direct URL. Not cleanly auto-fetchable; would need a headless browser. Deferred per the auto-fetch-only decision. Has a confirmed 'African American (Black)' ethnicity value, so high-value if a scraper is ever sanctioned."
     record_estimate: null
     last_checked: "2026-06-10"
   - source_id: sc_smbcc
@@ -152,10 +153,10 @@ sources:
     ethnicity_values: ["01 African-American Male", "02 African-American Female", "03 Caucasian Female", "04 Hispanic American", "05 African-American currently certified by SCDOT", "06 Caucasian Female SCDOT", "07 Native American", "08 SBA-certified minority", "09 Other (incl. Asian Pacific)"]
     black_filter_values: ["01", "02", "05"]
     tier: 2
-    status: buildable
-    record_estimate: null
+    status: built                 # adapter sc_smbcc.py merged 2026-06-10; 458 records
+    record_estimate: 458          # Class 01(230)+02(227)+05(1)
     last_checked: "2026-06-10"
-    notes: "Verify the code column is physically present in the .xlsx on ingest (page legend confirmed; file not parsed)."
+    notes: "Black indicator is the 'Class' column (not the cert number): 01/02 African American Male/Female, 05 DLT Certified AA. Adapter scrapes the dated .xlsx link from the landing page and finds the header row dynamically. Known minor issue: business names carry a source status suffix (' - New'/' - Renewal')."
   - source_id: nv_dbe
     name: Nevada NUCP DBE Directory (NDOT, B2Gnow)
     geography: NV
@@ -168,10 +169,11 @@ sources:
     ethnicity_values: ["Asian-Pacific American", "Black American", "Caucasian", "Hispanic American", "Native American", "Other Minority", "Subcontinent Asian American"]
     black_filter_values: ["Black American"]
     tier: 2
-    status: buildable
+    status: blocked
+    status_reason: "Verified 2026-06-10: the 'Download Entire Directory to Excel' is a session-bound form POST (per-session XID), not a direct URL. Not cleanly auto-fetchable; needs a headless browser. Deferred per the auto-fetch-only decision. Has a confirmed 'Black American' ethnicity value — high-value if a scraper is sanctioned."
     record_estimate: null
     last_checked: "2026-06-10"
-    notes: "'Download Entire Directory to Excel' (leave criteria blank). Certs flagged under USDOT IFR reevaluation but data still live/exportable."
+    notes: "'Download Entire Directory to Excel' exists but is form/session-bound (see status_reason)."
   - source_id: de_osd
     name: Delaware Office of Supplier Diversity 2025
     geography: DE
@@ -184,8 +186,8 @@ sources:
     ethnicity_values: ["ddd_baa=Black or African American", "ddd_ha=Hispanic American", "ddd_aapa=Asian/Asian-Pacific American", "ddd_saa=Subcontinent Asian American", "ddd_na=Native American", "ddd_f=Female", "ddd_v=Veteran", "ddd_sdvi=Service Disabled Veteran", "ddd_id=Individual with Disability"]
     black_filter_values: ["ddd_baa=YES"]
     tier: 1
-    status: buildable
-    record_estimate: 809          # total; Black subset smaller
+    status: built                 # adapter de_osd.py merged 2026-06-10; 335 records
+    record_estimate: 335          # ddd_baa=YES of 809 total
     last_checked: "2026-06-10"
     notes: "Use dataset 8dxf-6ahp (2025). Older s4ev-nzhm now requires login — do not use."
   - source_id: tn_godbe

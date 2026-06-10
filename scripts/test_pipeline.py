@@ -1236,3 +1236,285 @@ def test_in_idoa_extra_columns_in_source_fields(in_xlsx):
 def test_in_idoa_raises_file_not_found():
     with pytest.raises(FileNotFoundError):
         InIdoaAdapter(file_path=Path("/nonexistent/in_idoa.xlsx"))
+
+
+# ── ct_das_smbe adapter tests ─────────────────────────────────────────────────
+
+from adapters.ct_das_smbe import CtDasSmbeAdapter
+
+_CT_HEADERS = [
+    "vendorname", "business_address1", "townnamecrosswalk_standardized_town",
+    "zip", "county", "business_state", "certification_type",
+    "class_description_detailed", "active_date", "expiration_date", "status",
+    "product", "gs_code", "goods_and_services", "location",
+]
+
+
+def _make_ct_csv(rows: list[dict]) -> str:
+    buf = io.StringIO()
+    writer = csv.DictWriter(buf, fieldnames=_CT_HEADERS, extrasaction="ignore")
+    writer.writeheader()
+    writer.writerows(rows)
+    return buf.getvalue()
+
+
+def _ct_row(vendorname="Down To Earth Consulting LLC",
+            street="27 Siemon Company Drive", city="Watertown",
+            state="CT", zipcode="06795", cert_type="MBE",
+            ethnicity="Black American", gs_code="541330",
+            goods="Engineering Services", product="Geotechnical Services",
+            location="POINT (-73.11257 41.60364)"):
+    return {
+        "vendorname": vendorname, "business_address1": street,
+        "townnamecrosswalk_standardized_town": city, "zip": zipcode,
+        "county": "NA", "business_state": state,
+        "certification_type": cert_type,
+        "class_description_detailed": ethnicity,
+        "active_date": "2028-05-22T00:00:00.000",
+        "expiration_date": "2030-05-21T00:00:00.000", "status": "Certified",
+        "product": product, "gs_code": gs_code, "goods_and_services": goods,
+        "location": location,
+    }
+
+
+def _ct_response(csv_text: str):
+    resp = MagicMock()
+    resp.text = csv_text
+    resp.raise_for_status = MagicMock()
+    return resp
+
+
+def test_ct_filters_to_black_american():
+    csv_text = _make_ct_csv([
+        _ct_row(vendorname="Black Co", ethnicity="Black American"),
+        _ct_row(vendorname="Hisp Co", ethnicity="Hispanic American"),
+        _ct_row(vendorname="Iberian Co", ethnicity="Iberian Peninsula"),
+    ])
+    with patch("requests.get", return_value=_ct_response(csv_text)):
+        records = CtDasSmbeAdapter().run()
+    assert [r["business_name"] for r in records] == ["Black Co"]
+
+
+def test_ct_maps_standard_fields():
+    csv_text = _make_ct_csv([_ct_row(
+        vendorname="Black Co", street="27 Siemon Company Drive",
+        city="Watertown", state="CT", zipcode="06795", gs_code="541330",
+    )])
+    with patch("requests.get", return_value=_ct_response(csv_text)):
+        rec = CtDasSmbeAdapter().run()[0]
+    assert rec["business_name"] == "Black Co"
+    assert rec["address_street"] == "27 Siemon Company Drive"
+    assert rec["address_city"] == "Watertown"
+    assert rec["address_state"] == "CT"
+    assert rec["address_zip"] == "06795"
+    assert rec["naics_code"] == "541330"
+
+
+def test_ct_certification_from_type():
+    csv_text = _make_ct_csv([_ct_row(cert_type="SBE")])
+    with patch("requests.get", return_value=_ct_response(csv_text)):
+        rec = CtDasSmbeAdapter().run()[0]
+    assert rec["certification"] == "SBE"
+
+
+def test_ct_extracts_coords_from_point():
+    csv_text = _make_ct_csv([_ct_row(location="POINT (-73.11257 41.60364)")])
+    with patch("requests.get", return_value=_ct_response(csv_text)):
+        rec = CtDasSmbeAdapter().run()[0]
+    assert rec["latitude"] == "41.60364"
+    assert rec["longitude"] == "-73.11257"
+
+
+def test_ct_handles_missing_point():
+    csv_text = _make_ct_csv([_ct_row(location="")])
+    with patch("requests.get", return_value=_ct_response(csv_text)):
+        rec = CtDasSmbeAdapter().run()[0]
+    assert rec["latitude"] == ""
+    assert rec["longitude"] == ""
+
+
+def test_ct_confidence_is_confirmed_black():
+    assert CtDasSmbeAdapter.CONFIDENCE == "confirmed_black"
+
+
+def test_ct_empty_when_no_black_american():
+    csv_text = _make_ct_csv([_ct_row(ethnicity="Hispanic American")])
+    with patch("requests.get", return_value=_ct_response(csv_text)):
+        records = CtDasSmbeAdapter().run()
+    assert records == []
+
+
+# ── de_osd adapter tests ──────────────────────────────────────────────────────
+
+from adapters.de_osd import DeOsdAdapter
+
+_DE_HEADERS = [
+    "name", "certificatenumber", "primarycontactname", "address", "city",
+    "state", "zipcode", "phonenumber", "email", "description",
+    "ddd_baa", "ddd_ha", "ddd_f", "ct_mbe", "ct_wbe",
+]
+
+
+def _make_de_csv(rows: list[dict]) -> str:
+    buf = io.StringIO()
+    writer = csv.DictWriter(buf, fieldnames=_DE_HEADERS, extrasaction="ignore")
+    writer.writeheader()
+    writer.writerows(rows)
+    return buf.getvalue()
+
+
+def _de_row(name="1st State Aerials LLC", cert="DE24074827",
+            contact="Gregory Morris", address="409 W. 19th Street",
+            city="Wilmington", state="Delaware", zipcode="19802",
+            phone="3024943627", email="x@y.com", description="Aerial services",
+            baa="YES", ct_mbe="YES"):
+    return {
+        "name": name, "certificatenumber": cert, "primarycontactname": contact,
+        "address": address, "city": city, "state": state, "zipcode": zipcode,
+        "phonenumber": phone, "email": email, "description": description,
+        "ddd_baa": baa, "ddd_ha": "", "ddd_f": "", "ct_mbe": ct_mbe, "ct_wbe": "",
+    }
+
+
+def test_de_filters_to_baa_yes():
+    csv_text = _make_de_csv([
+        _de_row(name="Black Co", baa="YES"),
+        _de_row(name="NonBlack Co", baa=""),
+        _de_row(name="Hisp Co", baa=" "),
+    ])
+    with patch("requests.get", return_value=_ct_response(csv_text)):
+        records = DeOsdAdapter().run()
+    assert [r["business_name"] for r in records] == ["Black Co"]
+
+
+def test_de_maps_standard_fields():
+    csv_text = _make_de_csv([_de_row(
+        name="Black Co", contact="Gregory Morris", address="409 W. 19th Street",
+        city="Wilmington", state="Delaware", zipcode="19802",
+        phone="3024943627", email="g@example.com",
+    )])
+    with patch("requests.get", return_value=_ct_response(csv_text)):
+        rec = DeOsdAdapter().run()[0]
+    assert rec["business_name"] == "Black Co"
+    assert rec["owner_name"] == "Gregory Morris"
+    assert rec["address_street"] == "409 W. 19th Street"
+    assert rec["address_city"] == "Wilmington"
+    assert rec["address_state"] == "Delaware"
+    assert rec["address_zip"] == "19802"
+    assert rec["phone"] == "3024943627"
+    assert rec["email"] == "g@example.com"
+
+
+def test_de_source_business_id_is_cert_number():
+    csv_text = _make_de_csv([_de_row(cert="DE99999")])
+    with patch("requests.get", return_value=_ct_response(csv_text)):
+        rec = DeOsdAdapter().run()[0]
+    assert rec["source_business_id"] == "DE99999"
+
+
+def test_de_confidence_is_confirmed_black():
+    assert DeOsdAdapter.CONFIDENCE == "confirmed_black"
+
+
+def test_de_empty_when_no_baa():
+    csv_text = _make_de_csv([_de_row(baa="")])
+    with patch("requests.get", return_value=_ct_response(csv_text)):
+        records = DeOsdAdapter().run()
+    assert records == []
+
+
+# ── sc_smbcc adapter tests ────────────────────────────────────────────────────
+
+from adapters.sc_smbcc import ScSmbccAdapter
+
+_SC_HEADERS = [
+    None, "Organization Lookup", None, "DBA", "Business Address", "Business City",
+    "Business State", "Business Zip", "Year Established", "Business Phone",
+    "Vendor Registration Number", "Services", "Service Area", "Business Email",
+    "Class", "Certification ID", "Date Certified", "Expiration Date",
+]
+
+
+def _make_sc_xlsx_bytes(data_rows: list[list]) -> bytes:
+    """Build an SMBCC-format workbook: preamble rows, a header row, then data."""
+    wb = _openpyxl.Workbook()
+    ws = wb.active
+    ws.append([None])
+    ws.append([None, "SMBCC Excel Report for Website"])
+    ws.append([None, "As of 2026-06-02"])
+    for _ in range(6):
+        ws.append([None])              # variable preamble (header is NOT at a fixed row)
+    ws.append(_SC_HEADERS)
+    for row in data_rows:
+        ws.append(row)
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
+
+
+def _sc_data_row(name="Palmetto Builders LLC", dba="", address="100 Main St",
+                 city="Columbia", state="SC", zipcode="29201", year="2015",
+                 phone="803-555-0100", vendor_id="V12345", services="Construction",
+                 area="Statewide", email="info@palmetto.com",
+                 class_val="01 - African American Male Owners",
+                 cert_id="202581", date_cert="2024-01-01", exp="2026-01-01"):
+    # Positions match _SC_HEADERS (index 0 and 2 are unnamed/blank columns).
+    return [None, name, None, dba, address, city, state, zipcode, year, phone,
+            vendor_id, services, area, email, class_val, cert_id, date_cert, exp]
+
+
+def _sc_fetch_mock(xlsx_bytes: bytes):
+    """side_effect for requests.get: 1st call = landing HTML, 2nd = xlsx bytes."""
+    landing = MagicMock()
+    landing.text = '<a href="/files/SC%20Cert%20List%2006.02.26.xlsx">download</a>'
+    landing.raise_for_status = MagicMock()
+    xlsx = MagicMock()
+    xlsx.content = xlsx_bytes
+    xlsx.raise_for_status = MagicMock()
+    return [landing, xlsx]
+
+
+def test_sc_filters_to_black_class_codes():
+    xlsx = _make_sc_xlsx_bytes([
+        _sc_data_row(name="AA Male Co", class_val="01 - African American Male Owners"),
+        _sc_data_row(name="AA Female Co", class_val="02 - African American Female Owners"),
+        _sc_data_row(name="DLT AA Co", class_val="05 - DLT Certified AA Male/Female"),
+        _sc_data_row(name="Cauc Female Co", class_val="03- Caucasian Female Owners"),
+        _sc_data_row(name="Hisp Co", class_val="04 - Hispanic Male/Female Owners"),
+        _sc_data_row(name="Asian Co", class_val="09 - Asian Pacific or Other"),
+    ])
+    with patch("requests.get", side_effect=_sc_fetch_mock(xlsx)):
+        records = ScSmbccAdapter().run()
+    names = sorted(r["business_name"] for r in records)
+    assert names == ["AA Female Co", "AA Male Co", "DLT AA Co"]
+
+
+def test_sc_maps_standard_fields():
+    xlsx = _make_sc_xlsx_bytes([_sc_data_row(
+        name="Palmetto Builders LLC", address="100 Main St", city="Columbia",
+        state="SC", zipcode="29201", phone="803-555-0100", email="info@palmetto.com",
+        vendor_id="V12345",
+    )])
+    with patch("requests.get", side_effect=_sc_fetch_mock(xlsx)):
+        rec = ScSmbccAdapter().run()[0]
+    assert rec["business_name"] == "Palmetto Builders LLC"
+    assert rec["address_street"] == "100 Main St"
+    assert rec["address_city"] == "Columbia"
+    assert rec["address_state"] == "SC"
+    assert rec["address_zip"] == "29201"
+    assert rec["phone"] == "803-555-0100"
+    assert rec["email"] == "info@palmetto.com"
+    assert rec["source_business_id"] == "V12345"
+
+
+def test_sc_confidence_is_confirmed_black():
+    assert ScSmbccAdapter.CONFIDENCE == "confirmed_black"
+
+
+def test_sc_empty_when_no_black():
+    xlsx = _make_sc_xlsx_bytes([
+        _sc_data_row(class_val="03- Caucasian Female Owners"),
+    ])
+    with patch("requests.get", side_effect=_sc_fetch_mock(xlsx)):
+        records = ScSmbccAdapter().run()
+    assert records == []
