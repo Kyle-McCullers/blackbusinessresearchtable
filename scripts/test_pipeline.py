@@ -1342,3 +1342,82 @@ def test_ct_empty_when_no_black_american():
     with patch("requests.get", return_value=_ct_response(csv_text)):
         records = CtDasSmbeAdapter().run()
     assert records == []
+
+
+# ── de_osd adapter tests ──────────────────────────────────────────────────────
+
+from adapters.de_osd import DeOsdAdapter
+
+_DE_HEADERS = [
+    "name", "certificatenumber", "primarycontactname", "address", "city",
+    "state", "zipcode", "phonenumber", "email", "description",
+    "ddd_baa", "ddd_ha", "ddd_f", "ct_mbe", "ct_wbe",
+]
+
+
+def _make_de_csv(rows: list[dict]) -> str:
+    buf = io.StringIO()
+    writer = csv.DictWriter(buf, fieldnames=_DE_HEADERS, extrasaction="ignore")
+    writer.writeheader()
+    writer.writerows(rows)
+    return buf.getvalue()
+
+
+def _de_row(name="1st State Aerials LLC", cert="DE24074827",
+            contact="Gregory Morris", address="409 W. 19th Street",
+            city="Wilmington", state="Delaware", zipcode="19802",
+            phone="3024943627", email="x@y.com", description="Aerial services",
+            baa="YES", ct_mbe="YES"):
+    return {
+        "name": name, "certificatenumber": cert, "primarycontactname": contact,
+        "address": address, "city": city, "state": state, "zipcode": zipcode,
+        "phonenumber": phone, "email": email, "description": description,
+        "ddd_baa": baa, "ddd_ha": "", "ddd_f": "", "ct_mbe": ct_mbe, "ct_wbe": "",
+    }
+
+
+def test_de_filters_to_baa_yes():
+    csv_text = _make_de_csv([
+        _de_row(name="Black Co", baa="YES"),
+        _de_row(name="NonBlack Co", baa=""),
+        _de_row(name="Hisp Co", baa=" "),
+    ])
+    with patch("requests.get", return_value=_ct_response(csv_text)):
+        records = DeOsdAdapter().run()
+    assert [r["business_name"] for r in records] == ["Black Co"]
+
+
+def test_de_maps_standard_fields():
+    csv_text = _make_de_csv([_de_row(
+        name="Black Co", contact="Gregory Morris", address="409 W. 19th Street",
+        city="Wilmington", state="Delaware", zipcode="19802",
+        phone="3024943627", email="g@example.com",
+    )])
+    with patch("requests.get", return_value=_ct_response(csv_text)):
+        rec = DeOsdAdapter().run()[0]
+    assert rec["business_name"] == "Black Co"
+    assert rec["owner_name"] == "Gregory Morris"
+    assert rec["address_street"] == "409 W. 19th Street"
+    assert rec["address_city"] == "Wilmington"
+    assert rec["address_state"] == "Delaware"
+    assert rec["address_zip"] == "19802"
+    assert rec["phone"] == "3024943627"
+    assert rec["email"] == "g@example.com"
+
+
+def test_de_source_business_id_is_cert_number():
+    csv_text = _make_de_csv([_de_row(cert="DE99999")])
+    with patch("requests.get", return_value=_ct_response(csv_text)):
+        rec = DeOsdAdapter().run()[0]
+    assert rec["source_business_id"] == "DE99999"
+
+
+def test_de_confidence_is_confirmed_black():
+    assert DeOsdAdapter.CONFIDENCE == "confirmed_black"
+
+
+def test_de_empty_when_no_baa():
+    csv_text = _make_de_csv([_de_row(baa="")])
+    with patch("requests.get", return_value=_ct_response(csv_text)):
+        records = DeOsdAdapter().run()
+    assert records == []

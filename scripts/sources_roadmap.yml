@@ -184,8 +184,8 @@ sources:
     ethnicity_values: ["ddd_baa=Black or African American", "ddd_ha=Hispanic American", "ddd_aapa=Asian/Asian-Pacific American", "ddd_saa=Subcontinent Asian American", "ddd_na=Native American", "ddd_f=Female", "ddd_v=Veteran", "ddd_sdvi=Service Disabled Veteran", "ddd_id=Individual with Disability"]
     black_filter_values: ["ddd_baa=YES"]
     tier: 1
-    status: buildable
-    record_estimate: 809          # total; Black subset smaller
+    status: built                 # adapter de_osd.py merged 2026-06-10; 335 records
+    record_estimate: 335          # ddd_baa=YES of 809 total
     last_checked: "2026-06-10"
     notes: "Use dataset 8dxf-6ahp (2025). Older s4ev-nzhm now requires login — do not use."
   - source_id: tn_godbe
