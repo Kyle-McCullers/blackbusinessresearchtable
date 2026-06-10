@@ -84,7 +84,7 @@ def test_adapter_missing_fetch_raises():
 
 import duckdb
 import json
-from pipeline.db import open_db, upsert_source, write_businesses, write_snapshot_meta, get_registry, upsert_registry
+from pipeline.db import open_db, upsert_source, write_businesses, write_snapshot_meta, get_registry, upsert_registry, carry_forward_records
 
 
 @pytest.fixture
@@ -191,6 +191,68 @@ def test_upsert_registry_updates_last_seen(tmp_db):
     result = get_registry(tmp_db)
     assert result[0]["last_seen"] == "2026-Q2"
     assert result[0]["first_seen"] == "2026-Q1"
+
+
+# ── carry-forward tests ──────────────────────────────────────────────────────
+
+def test_carry_forward_returns_records_for_unrun_sources(tmp_db):
+    write_businesses(tmp_db, [
+        _make_record(business_id="uuid-1", source_id="src_a", business_name="A Co"),
+        _make_record(business_id="uuid-2", source_id="src_b", business_name="B Co"),
+    ], "2026-Q2")
+    write_snapshot_meta(tmp_db, "2026-Q2", 2, 0, ["src_a", "src_b"], [])
+
+    # New run: only src_a succeeded; src_b did not run this cycle.
+    carried = carry_forward_records(tmp_db, "2026-Q3", {"src_a"})
+
+    ids = {r["business_id"] for r in carried}
+    assert ids == {"uuid-2"}                       # only the un-run source carried
+    assert carried[0]["source_id"] == "src_b"
+    assert carried[0]["business_name"] == "B Co"   # fields preserved verbatim
+
+
+def test_snapshot_meta_records_carried_forward_sources(tmp_db):
+    write_snapshot_meta(tmp_db, "2026-Q3", 10, 0, ["src_a"], [],
+                        sources_carried_forward=["src_b", "src_c"])
+    row = tmp_db.execute(
+        "SELECT sources_carried_forward FROM snapshots WHERE snapshot_id='2026-Q3'"
+    ).fetchone()
+    assert json.loads(row[0]) == ["src_b", "src_c"]
+
+
+def test_snapshot_meta_carried_forward_defaults_empty(tmp_db):
+    write_snapshot_meta(tmp_db, "2026-Q3", 10, 0, ["src_a"], [])
+    row = tmp_db.execute(
+        "SELECT sources_carried_forward FROM snapshots WHERE snapshot_id='2026-Q3'"
+    ).fetchone()
+    assert json.loads(row[0]) == []
+
+
+def test_carry_forward_empty_when_all_sources_ran(tmp_db):
+    write_businesses(tmp_db, [
+        _make_record(business_id="uuid-1", source_id="src_a"),
+    ], "2026-Q2")
+    write_snapshot_meta(tmp_db, "2026-Q2", 1, 0, ["src_a"], [])
+    carried = carry_forward_records(tmp_db, "2026-Q3", {"src_a"})
+    assert carried == []
+
+
+def test_carry_forward_uses_only_latest_prior_snapshot(tmp_db):
+    # src_b appears only in the older snapshot; it should NOT be resurrected
+    # from an old snapshot once it has dropped out of the latest one.
+    write_businesses(tmp_db, [
+        _make_record(business_id="uuid-1", source_id="src_a"),
+        _make_record(business_id="uuid-2", source_id="src_b"),
+    ], "2026-Q1")
+    write_snapshot_meta(tmp_db, "2026-Q1", 2, 0, ["src_a", "src_b"], [])
+    write_businesses(tmp_db, [
+        _make_record(business_id="uuid-1", source_id="src_a"),
+    ], "2026-Q2")
+    write_snapshot_meta(tmp_db, "2026-Q2", 1, 0, ["src_a"], [])
+
+    carried = carry_forward_records(tmp_db, "2026-Q3", set())
+    ids = {r["business_id"] for r in carried}
+    assert ids == {"uuid-1"}   # only what was in the latest (2026-Q2) snapshot
 
 
 # ── entity_resolver tests ────────────────────────────────────────────────────
@@ -912,41 +974,41 @@ from adapters.md_mbe import MdMbeAdapter
 
 
 def _make_md_csv(rows: list[dict]) -> str:
-    """Build a CSV string in Maryland B2Gnow export format."""
+    """Build a CSV string in the real MDOT/gob2g export format:
+    5 metadata preamble rows, then the header row, then data rows.
+    (The adapter skips METADATA_ROWS=5 lines before the header.)"""
     fieldnames = [
-        "Firm ID", "Firm Name", "DBA Name", "Certification Type", "Minority Status",
-        "Address", "City", "State", "Zip", "County", "Phone", "Email", "Web Site",
-        "Contact First Name", "Contact Last Name", "NAICS Codes",
+        "Company Name", "Physical Address", "City", "State", "Zip", "Phone",
+        "Email", "Website", "Minority Status", "Certification Number",
+        "Owner First", "Owner Last",
     ]
     buf = io.StringIO()
+    for i in range(5):
+        buf.write(f"MDOT MBE Directory export metadata row {i + 1}\n")
     writer = csv.DictWriter(buf, fieldnames=fieldnames, extrasaction="ignore")
     writer.writeheader()
     writer.writerows(rows)
     return buf.getvalue()
 
 
-def _make_md_row(firm_id="MD001", name="Baltimore Tech LLC",
+def _make_md_row(cert_number="MD001", name="Baltimore Tech LLC",
                  street="200 Light St", city="Baltimore", state="MD",
                  zipcode="21202", phone="410-555-0200", email="info@baltech.com",
                  website="https://baltech.com", minority_status="African American",
-                 cert_type="MBE"):
+                 owner_first="John", owner_last="Doe"):
     return {
-        "Firm ID": firm_id,
-        "Firm Name": name,
-        "DBA Name": "",
-        "Certification Type": cert_type,
-        "Minority Status": minority_status,
-        "Address": street,
+        "Company Name": name,
+        "Physical Address": street,
         "City": city,
         "State": state,
         "Zip": zipcode,
-        "County": "Baltimore City",
         "Phone": phone,
         "Email": email,
-        "Web Site": website,
-        "Contact First Name": "John",
-        "Contact Last Name": "Doe",
-        "NAICS Codes": "541511",
+        "Website": website,
+        "Minority Status": minority_status,
+        "Certification Number": cert_number,
+        "Owner First": owner_first,
+        "Owner Last": owner_last,
     }
 
 
@@ -995,8 +1057,8 @@ def test_md_mbe_maps_standard_fields(tmp_path):
     assert rec["certification"] == "MBE"
 
 
-def test_md_mbe_sets_firm_id_as_source_business_id(tmp_path):
-    row = _make_md_row(firm_id="MD99999")
+def test_md_mbe_sets_cert_number_as_source_business_id(tmp_path):
+    row = _make_md_row(cert_number="MD99999")
     csv_file = tmp_path / "md_mbe.csv"
     csv_file.write_text(_make_md_csv([row]))
     records = MdMbeAdapter(file_path=csv_file).run()
@@ -1015,12 +1077,9 @@ def test_md_mbe_puts_extra_fields_in_source_fields(tmp_path):
 
 
 def test_md_mbe_handles_empty_file(tmp_path):
-    fieldnames = ["Firm ID", "Firm Name", "Address", "City", "State", "Zip",
-                  "Phone", "Email", "Web Site", "DBA Name", "Certification Type",
-                  "Minority Status", "County", "Contact First Name",
-                  "Contact Last Name", "NAICS Codes"]
+    # Valid file (5 metadata rows + header) but zero data rows → no records.
     csv_file = tmp_path / "md_mbe.csv"
-    csv_file.write_text(",".join(fieldnames) + "\n")
+    csv_file.write_text(_make_md_csv([]))
     records = MdMbeAdapter(file_path=csv_file).run()
     assert records == []
 

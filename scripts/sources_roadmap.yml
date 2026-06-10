@@ -1,0 +1,938 @@
+# BBRT Source Roadmap — single source of truth for expansion.
+#
+# Drives both the Phase 2 big push and the Phase 4 weekly agent.
+# status: built | buildable | blocked | no_data
+#   built     = adapter merged and producing records
+#   buildable = publicly fetchable now (CSV/Excel/API); ready for an adapter
+#   blocked   = program/directory exists but not directly fetchable
+#               (portal-only / login / CAPTCHA / records-request / offline) — reason required
+#   no_data   = no public certified-firm directory found, or program is race-neutral
+# confidence: confirmed_black | mbe_unverified  (only meaningful once built/buildable)
+# ethnicity values are captured verbatim where observed; "" / [] where unverified.
+#
+# Generated 2026-06-10 from a 6-region parallel inventory sweep (50 states + DC +
+# 5 territories + ~40 city/county programs + federal). See
+# docs/data-sources/source-inventory.md for the narrative and
+# docs/data-sources/ethnicity-field-audit.md for the QC value audit.
+
+meta:
+  generated: "2026-06-10"
+  cross_cutting_risks:
+    - "USDOT Interim Final Rule (49 CFR 23/26, effective 2025-10-03) is forcing
+       nationwide DBE recertification; many DBE directories are offline or
+       mid-reevaluation (CO offline, SD all-inactive, CA CUCP offline 2026-03-02).
+       DBE-derived counts in mid-2026 are unstable — flag in methodology."
+    - "B2Gnow / dbesystem.com / gob2g.com is the dominant platform. The same
+       platform exposes an Ethnicity field with a 'Black American'/'Black' value
+       on some agency instances (NV, CO, CA, OR, TN, MD-existing) but not others
+       (UT, ID, NM, OK). Ethnicity is collected at registration on ALL instances,
+       so the 'Download Entire Directory to Excel' export MAY contain an ethnicity
+       column even where the search UI hides it — a one-off download check could
+       flip several blocked sources to buildable/confirmed_black. The existing
+       md_mbe adapter already parses a gob2g Excel export — reuse that pattern."
+
+sources:
+
+  # ─────────────────────────────────────────────────────────────────────
+  # BUILT — adapters merged and producing records
+  # ─────────────────────────────────────────────────────────────────────
+  - source_id: nyc_mwbe
+    name: NYC MWBE
+    geography: NYC
+    level: city
+    program: MWBE
+    access: excel_download
+    confidence: confirmed_black
+    status: built
+    record_estimate: 3775
+    last_checked: "2026-06-10"
+  - source_id: tx_hub
+    name: Texas HUB
+    geography: TX
+    level: state
+    program: HUB
+    access: excel_download
+    confidence: confirmed_black
+    status: built
+    record_estimate: 4074
+    last_checked: "2026-06-10"
+  - source_id: md_mbe
+    name: Maryland MBE Program
+    geography: MD
+    level: state
+    program: MBE
+    access: excel_download
+    confidence: confirmed_black
+    status: built
+    record_estimate: 5403
+    last_checked: "2026-06-10"
+  - source_id: ma_sdo
+    name: Massachusetts SDO
+    geography: MA
+    level: state
+    program: MBE
+    access: excel_download
+    confidence: confirmed_black
+    status: built
+    record_estimate: 593
+    last_checked: "2026-06-10"
+  - source_id: al_ombe
+    name: Alabama OMBE
+    geography: AL
+    level: state
+    program: MBE
+    access: excel_download
+    confidence: confirmed_black
+    status: built
+    record_estimate: 103
+    last_checked: "2026-06-10"
+  - source_id: in_idoa
+    name: Indiana IDOA
+    geography: IN
+    level: state
+    program: MBE
+    access: excel_download
+    confidence: confirmed_black
+    status: built
+    record_estimate: 4759
+    last_checked: "2026-06-10"
+  - source_id: sam_8a
+    name: SAM.gov SBA 8(a)
+    geography: US-national
+    level: federal
+    program: 8(a)
+    access: api_rest
+    confidence: mbe_unverified
+    status: built          # adapter complete; loaded once SAM_GOV_API_KEY is set (done 2026-06-10)
+    record_estimate: null
+    last_checked: "2026-06-10"
+
+  # ─────────────────────────────────────────────────────────────────────
+  # BUILDABLE — confirmed_black (Phase 2 priority queue, highest value first)
+  # ─────────────────────────────────────────────────────────────────────
+  - source_id: ct_das_smbe
+    name: Connecticut DAS Certified Small Businesses (SBE/MBE)
+    geography: CT
+    level: state
+    program: SBE/MBE
+    access: api_socrata
+    url: "https://data.ct.gov/resource/y4ub-e4dd.csv"
+    confidence: confirmed_black
+    ethnicity_field_name: "class_description_detailed"
+    ethnicity_values: ["Black American", "Hispanic American", "Asian Pacific American and Pacific Islander", "Iberian Peninsula", "American Indian", "No minority race/ethnicity identified"]
+    black_filter_values: ["Black American"]
+    tier: 1
+    status: buildable
+    record_estimate: 970          # ~970 Black American of 7836 total
+    last_checked: "2026-06-10"
+  - source_id: or_cobid
+    name: Oregon COBID Certified Vendor Directory
+    geography: OR
+    level: state
+    program: MBE/WBE/ESB/DBE
+    access: excel_download
+    url: "https://oregon4biz.diversitysoftware.com/FrontEnd/searchcertifieddirectory.asp?TN=oregon4biz&XID=3480"
+    confidence: confirmed_black
+    ethnicity_field_name: "Ethnicity"
+    ethnicity_values: ["African American (Black)", "Asian Pacific", "Caucasian (White)", "Hispanic", "Native American (Indian)", "Subcontinent Asian (Asian Indian)", "Other", "Unknown"]
+    black_filter_values: ["African American (Black)"]
+    tier: 1
+    status: buildable
+    record_estimate: null
+    last_checked: "2026-06-10"
+  - source_id: sc_smbcc
+    name: South Carolina SMBCC Small & Minority Business Certification List
+    geography: SC
+    level: state
+    program: SMBCC
+    access: excel_download
+    url: "https://advance.sc.gov/small-business-division"   # dated .xlsx filename changes each refresh
+    confidence: confirmed_black
+    ethnicity_field_name: "Minority classification code (numeric, embedded in cert number; legend on directory page)"
+    ethnicity_values: ["01 African-American Male", "02 African-American Female", "03 Caucasian Female", "04 Hispanic American", "05 African-American currently certified by SCDOT", "06 Caucasian Female SCDOT", "07 Native American", "08 SBA-certified minority", "09 Other (incl. Asian Pacific)"]
+    black_filter_values: ["01", "02", "05"]
+    tier: 2
+    status: buildable
+    record_estimate: null
+    last_checked: "2026-06-10"
+    notes: "Verify the code column is physically present in the .xlsx on ingest (page legend confirmed; file not parsed)."
+  - source_id: nv_dbe
+    name: Nevada NUCP DBE Directory (NDOT, B2Gnow)
+    geography: NV
+    level: state
+    program: DBE
+    access: excel_download
+    url: "https://ndot.gob2g.com/FrontEnd/searchcertifieddirectory.asp"
+    confidence: confirmed_black
+    ethnicity_field_name: "Ethnicity"
+    ethnicity_values: ["Asian-Pacific American", "Black American", "Caucasian", "Hispanic American", "Native American", "Other Minority", "Subcontinent Asian American"]
+    black_filter_values: ["Black American"]
+    tier: 2
+    status: buildable
+    record_estimate: null
+    last_checked: "2026-06-10"
+    notes: "'Download Entire Directory to Excel' (leave criteria blank). Certs flagged under USDOT IFR reevaluation but data still live/exportable."
+  - source_id: de_osd
+    name: Delaware Office of Supplier Diversity 2025
+    geography: DE
+    level: state
+    program: MWBE
+    access: api_socrata
+    url: "https://data.delaware.gov/resource/8dxf-6ahp.csv"
+    confidence: confirmed_black
+    ethnicity_field_name: "ddd_baa"      # one boolean column per disadvantage group
+    ethnicity_values: ["ddd_baa=Black or African American", "ddd_ha=Hispanic American", "ddd_aapa=Asian/Asian-Pacific American", "ddd_saa=Subcontinent Asian American", "ddd_na=Native American", "ddd_f=Female", "ddd_v=Veteran", "ddd_sdvi=Service Disabled Veteran", "ddd_id=Individual with Disability"]
+    black_filter_values: ["ddd_baa=YES"]
+    tier: 1
+    status: buildable
+    record_estimate: 809          # total; Black subset smaller
+    last_checked: "2026-06-10"
+    notes: "Use dataset 8dxf-6ahp (2025). Older s4ev-nzhm now requires login — do not use."
+  - source_id: tn_godbe
+    name: Tennessee Go-DBE Diversity Business Enterprise Directory (B2Gnow)
+    geography: TN
+    level: state
+    program: MBE/WBE/SDVBE/SBE
+    access: excel_download
+    url: "https://tn.dbesystem.com/FrontEnd/searchcertifieddirectory.asp"
+    confidence: confirmed_black     # CONTINGENT on export containing the ethnicity column
+    ethnicity_field_name: "MBE minority group (B2Gnow ethnicity field; not a search dropdown)"
+    ethnicity_values: ["African American", "Hispanic American", "Asian American", "Native American"]
+    black_filter_values: ["African American"]
+    tier: 2
+    status: buildable
+    record_estimate: null
+    last_checked: "2026-06-10"
+    notes: "'Download Entire Directory to Excel'. Confirm the export carries an ethnicity column before classifying confirmed_black; if absent, downgrade to mbe_unverified."
+  - source_id: va_swam
+    name: Virginia SWaM & DBE Directory (SBSD)
+    geography: VA
+    level: state
+    program: SWaM + DBE
+    access: api_rest
+    url: "https://directory.sbsd.virginia.gov/"
+    confidence: confirmed_black
+    ethnicity_field_name: "ethnicity (rendered 'Business Ethnicity' on the public detail card)"
+    ethnicity_values: ["UNVERIFIED — field confirmed in JS bundle; values not enumerable from curl (endpoint needs session/CSRF shaping)"]
+    black_filter_values: ["African American (presumed; confirm from a live record)"]
+    tier: 2
+    status: buildable
+    record_estimate: null
+    last_checked: "2026-06-10"
+    notes: "REST endpoints on host: GET /getApplication (paged, returned 500 to bare curl — needs request-shaping), /getAllFilters, /exportToExcel (email-gated). Requires modest reverse-engineering."
+  - source_id: baltimore_mwboo
+    name: Baltimore City MBE/WBE Certification Data (MWBOO)
+    geography: Baltimore-MD
+    level: city
+    program: MBE/WBE
+    access: api_rest          # Open Baltimore / ArcGIS Hub; Socrata mirror us2p-bijb
+    url: "https://data.baltimorecity.gov/datasets/baltimore::minority-and-womens-business-enterprises-mbe-wbe-certification-data/about"
+    confidence: confirmed_black     # CONTINGENT on published ethnicity column
+    ethnicity_field_name: "UNCONFIRMED — application captures African American/Hispanic/Asian/Native American"
+    ethnicity_values: ["African American", "Hispanic American", "Asian American", "Native American"]
+    black_filter_values: ["African American"]
+    tier: 2
+    status: buildable
+    record_estimate: null
+    last_checked: "2026-06-10"
+    notes: "One-off manual column check needed (feature-service schema queries 404'd). If a race/group column is published, this is confirmed_black; overlaps state md_mbe geography — dedupe on entity resolution."
+
+  # ─────────────────────────────────────────────────────────────────────
+  # BUILDABLE — mbe_unverified (coverage, flagged; no ethnicity breakdown)
+  # ─────────────────────────────────────────────────────────────────────
+  - source_id: nj_savi_mwbe
+    name: New Jersey SAVI
+    geography: NJ
+    level: state
+    program: MWBE
+    access: api_socrata
+    url: "https://data.nj.gov/resource/tfhb-8beb.csv"
+    confidence: mbe_unverified
+    ethnicity_field_name: "certification_type"
+    ethnicity_values: ["SBE", "MBE", "MWBE", "WBE", "DVOB", "VOB", "SEDB", "LBE"]
+    black_filter_values: []
+    tier: 3
+    status: buildable
+    record_estimate: 9719
+    last_checked: "2026-06-10"
+    notes: "Filter to MBE/MWBE tokens for the minority subset (ethnicity unknown)."
+  - source_id: ny_ucp_dbe
+    name: New York State UCP Certified DBEs
+    geography: NY
+    level: state
+    program: DBE
+    access: api_socrata
+    url: "https://data.ny.gov/resource/pfeu-dsx6.csv"
+    confidence: mbe_unverified
+    ethnicity_field_name: null
+    ethnicity_values: []
+    black_filter_values: []
+    tier: 3
+    status: buildable
+    record_estimate: 2262
+    last_checked: "2026-06-10"
+  - source_id: ky_mwbe
+    name: Kentucky MWBE Certified Listing
+    geography: KY
+    level: state
+    program: MWBE
+    access: excel_download
+    url: "https://finance.ky.gov/office-of-the-secretary  (dated .xlsx)"
+    confidence: mbe_unverified
+    ethnicity_field_name: "Type"
+    ethnicity_values: ["MBE - Minority Business Enterprise", "WBE - Women Business Enterprise", "MWBE - Minority owned Women Business Enterprise"]
+    black_filter_values: []
+    tier: 3
+    status: buildable
+    record_estimate: 500
+    last_checked: "2026-06-10"
+    notes: "VERIFIED by parsing the live .xlsx — no ethnicity column. URL date-stamped (changes each refresh)."
+  - source_id: philadelphia_oeo
+    name: Philadelphia OEO Registry of Certified M/W/DSBE
+    geography: Philadelphia-PA
+    level: city
+    program: MWDSBE
+    access: csv_download
+    url: "https://phl.carto.com/api/v2/sql?q=SELECT+*+FROM+oeo_registry&format=csv"
+    confidence: mbe_unverified
+    ethnicity_field_name: "certification_type"
+    ethnicity_values: ["MWBE", "WBE"]
+    black_filter_values: []
+    tier: 3
+    status: buildable
+    record_estimate: null
+    last_checked: "2026-06-10"
+  - source_id: detroit_certification_register
+    name: Detroit Business Certification Register (CRIO/DBOP)
+    geography: Detroit-MI
+    level: city
+    program: MBE/WBE
+    access: api_rest
+    url: "https://data.detroitmi.gov/datasets/detroit-business-certification-register"
+    confidence: mbe_unverified
+    ethnicity_field_name: "minority_owned_business_enterpr (boolean)"
+    ethnicity_values: ["minority_owned_business_enterpr=true/false", "woman_owned_business_enterprise=true/false"]
+    black_filter_values: []
+    tier: 3
+    status: buildable
+    record_estimate: null
+    last_checked: "2026-06-10"
+  - source_id: boston_certified_business
+    name: City of Boston Certified Business Directory (Analyze Boston)
+    geography: Boston-MA
+    level: city
+    program: MBE/WBE/SBE/SLBE
+    access: csv_download
+    url: "https://data.boston.gov/dataset/certified-business-directory"
+    confidence: mbe_unverified
+    ethnicity_field_name: "mbe_wbe_cert (combined flag)"
+    ethnicity_values: []
+    black_filter_values: []
+    tier: 3
+    status: buildable
+    record_estimate: 400
+    last_checked: "2026-06-10"
+    notes: "Small; overlaps existing ma_sdo geography — low priority, dedupe carefully."
+
+  # ─────────────────────────────────────────────────────────────────────
+  # BLOCKED — exists but not directly fetchable. Weekly agent re-probes.
+  # (Ethnicity-bearing blocked sources are the highest-value scrape/request targets.)
+  # ─────────────────────────────────────────────────────────────────────
+  - source_id: ny_state_mwbe
+    name: New York State MWBE Directory (ESD NYS Contract System)
+    geography: NY
+    level: state
+    program: MWBE
+    access: portal
+    url: "https://ny.newnycontracts.com/FrontEnd/searchcertifieddirectory.asp"
+    confidence: confirmed_black
+    black_filter_values: ["(race-based MBE; not exposed as exportable column)"]
+    tier: 2
+    status: blocked
+    status_reason: "Portal-only, no bulk export/API. data.ny.gov has only MWBE statistics, not firm records. Scrape or records request to ESD."
+    last_checked: "2026-06-10"
+  - source_id: nc_hub
+    name: North Carolina HUB Directory
+    geography: NC
+    level: state
+    program: HUB
+    access: portal
+    url: "https://vendor.ncgov.com/vendor/public-vendor-search"
+    confidence: confirmed_black
+    ethnicity_field_name: "HUB CATEGORY"
+    ethnicity_values: ["Black", "Hispanic", "Asian American", "American Indian", "Female", "Disabled", "Disadvantaged"]
+    black_filter_values: ["Black"]
+    tier: 2
+    status: blocked
+    status_reason: "eVP Salesforce portal, search-only, no public bulk export. NCOSC HUB-by-category reports are internal NCAS run-statements. Scrape eVP or records request. Black is an explicit HUB category → confirmed_black once obtained."
+    last_checked: "2026-06-10"
+  - source_id: fl_osd_cbe
+    name: Florida OSD Certified Business Enterprise Directory
+    geography: FL
+    level: state
+    program: OSD CBE
+    access: portal
+    url: "https://osd.dms.myflorida.com/directories"
+    confidence: confirmed_black
+    ethnicity_field_name: "minority subgrouping / nationality status (F.S. 287.0943)"
+    ethnicity_values: ["African American", "Hispanic American", "Asian American", "Native American"]
+    black_filter_values: ["African American"]
+    tier: 2
+    status: blocked
+    status_reason: "MyFloridaMarketPlace Angular SPA, search-only, no confirmed public bulk export. Statute requires tracking subgroupings but not as a public column. Reverse-engineer MFMP API or records request."
+    last_checked: "2026-06-10"
+  - source_id: co_dbe
+    name: Colorado UCP DBE/ACDBE Directory
+    geography: CO
+    level: state
+    program: DBE
+    access: portal
+    url: "https://coucp.dbesystem.com/FrontEnd/SearchCertifiedDirectory.asp"
+    confidence: confirmed_black
+    ethnicity_field_name: "Ethnicity"
+    ethnicity_values: ["Asian Indian", "Asian Pacific", "Black", "Caucasian", "Hispanic", "Native American", "Other Minority"]
+    black_filter_values: ["Black"]
+    tier: 2
+    status: blocked
+    status_reason: "Directory OFFLINE INDEFINITELY pending USDOT IFR reevaluation. Has an explicit 'Black' ethnicity value — re-probe periodically; likely buildable/confirmed_black when restored."
+    last_checked: "2026-06-10"
+  - source_id: ca_cucp_dbe
+    name: California UCP DBE Directory
+    geography: CA
+    level: state
+    program: DBE
+    access: portal
+    url: "https://californiaucp.dbesystem.com/FrontEnd/searchcertifieddirectory.asp"
+    confidence: confirmed_black
+    ethnicity_field_name: "Ethnicity"
+    ethnicity_values: ["Asian-Pacific American", "Black American", "Caucasian", "Hispanic American", "Native American", "Subcontinent Asian American", "Other Minority"]
+    black_filter_values: ["Black American"]
+    tier: 2
+    status: blocked
+    status_reason: "Ethnicity-bearing public directory taken offline 2026-03-02 (USDOT IFR). The exporting mirror (caltrans.dbesystem.com) has NO ethnicity field. Re-probe; when public CUCP returns, scrape filtered to Black American."
+    last_checked: "2026-06-10"
+  - source_id: ar_mbe
+    name: Arkansas AEDC Minority/Women-Owned Business Directory
+    geography: AR
+    level: state
+    program: MBE
+    access: portal
+    url: "https://www.arkansasedc.com/community-resources/directory"
+    confidence: confirmed_black
+    ethnicity_field_name: "Vendor Ethnicity"
+    ethnicity_values: ["(per-record field; 'African American Certified' designation filter exists; full values not enumerable from JS app)"]
+    black_filter_values: ["African American Certified"]
+    tier: 2
+    status: blocked
+    status_reason: "Search-only JS app with a 'Vendor Ethnicity' field and 'African American Certified' filter, but no CSV/Excel/API export. High-value scrape target."
+    last_checked: "2026-06-10"
+  - source_id: az_dbe
+    name: Arizona UTRACS DBE Directory (ADOT)
+    geography: AZ
+    level: state
+    program: DBE
+    access: portal
+    url: "https://utracs.azdot.gov/Search"
+    confidence: confirmed_black
+    ethnicity_field_name: "Ethnicity (collected at registration; required)"
+    black_filter_values: ["(likely 'Black American'; unconfirmed)"]
+    tier: 2
+    status: blocked
+    status_reason: "Public browse, but Excel export requires a signed-in AZ UTRACS account + CAPTCHA. Ethnicity not surfaced unauthenticated."
+    last_checked: "2026-06-10"
+  - source_id: wa_omwbe
+    name: Washington State OMWBE Directory
+    geography: WA
+    level: state
+    program: MWBE
+    access: portal
+    url: "https://omwbe.diversitycompliance.com/FrontEnd/searchcertifieddirectory.asp"
+    confidence: mbe_unverified
+    ethnicity_field_name: null
+    tier: 2
+    status: blocked
+    status_reason: "B2Gnow portal exposes only certification-type checkboxes (no ethnicity field) and no bulk export. Ethnicity collected but not public. (Spec originally assumed Tier-1 buildable — corrected.) Records request to confirm an extractable ethnicity column."
+    last_checked: "2026-06-10"
+  - source_id: pa_sdb
+    name: Pennsylvania Small Diverse Business Supplier Search (DGS/BDISBO)
+    geography: PA
+    level: state
+    program: SDB
+    access: portal
+    url: "https://www.dgs.internet.state.pa.us/suppliersearch"
+    confidence: mbe_unverified
+    tier: 3
+    status: blocked
+    status_reason: "Search-only, no export, and only an umbrella 'Small Diverse Business' flag with no race breakdown. Double-blocked."
+    last_checked: "2026-06-10"
+  - source_id: ri_mbeco
+    name: Rhode Island MBE/WBE Directory (DEDI/MBECO)
+    geography: RI
+    level: state
+    program: MBE/WBE
+    access: portal
+    url: "https://www.mbe.ri.gov/"
+    confidence: confirmed_black
+    tier: 2
+    status: blocked
+    status_reason: "JS portal, search-only, no export/static table. Race-based MBE → confirmed_black once obtained. Headless-browser scrape or records request to dedi.mbeco@doa.ri.gov."
+    last_checked: "2026-06-10"
+  - source_id: oh_mbe
+    name: Ohio DAS MBE Certified Vendor Search
+    geography: OH
+    level: state
+    program: MBE
+    access: portal
+    url: "https://eodreporting.oit.ohio.gov/mbe-certification"
+    confidence: confirmed_black
+    tier: 2
+    status: blocked
+    status_reason: "Search-only web form, no bulk export; server refused automated connections. MBE is race-eligibility-based; unconfirmed whether public results expose a per-firm ethnicity column. (EDGE program is NOT race-based — do not use.)"
+    last_checked: "2026-06-10"
+  - source_id: il_bep
+    name: Illinois BEP Certified Firms Directory (SDMP)
+    geography: IL
+    level: state
+    program: BEP
+    access: portal
+    url: "https://supplierdiversitymanagementportal.illinois.gov/VendorDirectory.aspx"
+    confidence: mbe_unverified
+    tier: 3
+    status: blocked
+    status_reason: "Search-only (name/FEIN/NIGP), no ethnicity filter/column, no export. Migrated off decommissioned diversitysoftware.com in 2024."
+    last_checked: "2026-06-10"
+  - source_id: ms_mbe
+    name: Mississippi Certified Minority Business Directory (MDA)
+    geography: MS
+    level: state
+    program: MBE
+    access: portal
+    url: "https://minority.mississippi.org/DirectorySearch.aspx"
+    confidence: mbe_unverified
+    tier: 2
+    status: blocked
+    status_reason: "Search-only ASP.NET portal, no export, no exposed ethnicity field; server returning 503 (migrating to Power Apps MMBR)."
+    last_checked: "2026-06-10"
+  - source_id: ut_dbe
+    name: Utah UUCP DBE Directory (UDOT, B2Gnow)
+    geography: UT
+    level: state
+    program: DBE
+    access: excel_download
+    url: "https://udot.gob2g.com/FrontEnd/searchcertifieddirectory.asp"
+    confidence: mbe_unverified
+    tier: 2
+    status: blocked
+    status_reason: "Has 'Download Results to Excel' but no ethnicity SEARCH field. CHECK EXPORT COLUMNS: B2Gnow stores ethnicity at registration; the Excel may contain a hidden ethnicity column — a one-off download could flip this to confirmed_black."
+    last_checked: "2026-06-10"
+  - source_id: id_dbe
+    name: Idaho ITD DBE Directory (B2Gnow)
+    geography: ID
+    level: state
+    program: DBE
+    access: excel_download
+    url: "https://itd.dbesystem.com/FrontEnd/searchcertifieddirectory.asp"
+    confidence: mbe_unverified
+    tier: 2
+    status: blocked
+    status_reason: "Excel export, no ethnicity search field. Same as UT — check export columns for a hidden ethnicity field before writing off."
+    last_checked: "2026-06-10"
+  - source_id: nm_dbe
+    name: New Mexico NMDOT DBE Directory (B2Gnow)
+    geography: NM
+    level: state
+    program: DBE
+    access: portal
+    url: "https://nmdot.gob2g.com/FrontEnd/searchcertifieddirectory.asp"
+    confidence: mbe_unverified
+    tier: 2
+    status: blocked
+    status_reason: "Newer B2Gnow template — no ethnicity filter and no visible Excel export button. ~130 firms."
+    last_checked: "2026-06-10"
+  - source_id: ok_dbe
+    name: Oklahoma ODOT DBE Directory
+    geography: OK
+    level: state
+    program: DBE
+    access: excel_download
+    url: "https://biappsrv.odot.ok.gov/apex/f?p=145:1"
+    confidence: mbe_unverified
+    tier: 2
+    status: blocked
+    status_reason: "Two directories (Oracle-APEX + B2Gnow okdot.gob2g.com), both with Excel export but no ethnicity field. ~368 firms. Check B2Gnow export columns."
+    last_checked: "2026-06-10"
+  - source_id: mt_dbe
+    name: Montana MDT DBE/SBE Directory
+    geography: MT
+    level: state
+    program: DBE
+    access: portal
+    url: "https://app.mdt.mt.gov/ess-dbe/"
+    confidence: mbe_unverified
+    tier: 2
+    status: blocked
+    status_reason: "Search-only, no ethnicity field, no export."
+    last_checked: "2026-06-10"
+  - source_id: chicago_mwbe
+    name: City of Chicago M/WBE Certified Directory
+    geography: Chicago-IL
+    level: city
+    program: MBE/WBE
+    access: portal
+    url: "https://chicago.mwdbe.com/"
+    confidence: mbe_unverified
+    tier: 2
+    status: blocked
+    status_reason: "B2Gnow/mwdbe.com, search-only. Chicago Socrata has only payment data, no certified directory."
+    last_checked: "2026-06-10"
+  - source_id: houston_mwbe
+    name: City of Houston OBO MWDBE Directory
+    geography: Houston-TX
+    level: city
+    program: MWBE/DBE/SBE
+    access: portal
+    url: "https://houston.mwdbe.com/"
+    confidence: mbe_unverified
+    tier: 2
+    status: blocked
+    status_reason: "B2Gnow/mwdbe.com, search-only, no exposed ethnicity."
+    last_checked: "2026-06-10"
+  - source_id: atlanta_occ
+    name: City of Atlanta Office of Contract Compliance Directory
+    geography: Atlanta-GA
+    level: city
+    program: MBE/FBE/EBO
+    access: portal
+    url: "https://atlantaga.gob2g.com/"
+    confidence: mbe_unverified
+    tier: 2
+    status: blocked
+    status_reason: "B2Gnow/gob2g, search-only, no bulk export."
+    last_checked: "2026-06-10"
+  - source_id: cook_county_mwbe
+    name: Cook County M/W/VBE Directory
+    geography: Cook-County-IL
+    level: county
+    program: MBE/WBE/VBE
+    access: portal
+    url: "https://cookcounty.diversitycompliance.com/FrontEnd/searchcertifieddirectory.asp"
+    confidence: mbe_unverified
+    tier: 2
+    status: blocked
+    status_reason: "B2Gnow/diversitycompliance, per-search Excel only, no programmatic bulk endpoint."
+    last_checked: "2026-06-10"
+  - source_id: denver_dsbo
+    name: Denver DSBO Directory
+    geography: Denver-CO
+    level: city
+    program: MBE/WBE/SBE/DBE
+    access: portal
+    url: "https://denver.mwdbe.com/"
+    confidence: mbe_unverified
+    tier: 3
+    status: blocked
+    status_reason: "B2Gnow/mwdbe.com, search-only."
+    last_checked: "2026-06-10"
+  - source_id: memphis_mwsbe
+    name: City of Memphis M/WBE Directory
+    geography: Memphis-TN
+    level: city
+    program: MWBE/SBE
+    access: portal
+    url: "https://memphis.mwsbe.com/"
+    confidence: mbe_unverified
+    tier: 3
+    status: blocked
+    status_reason: "B2Gnow/mwsbe.com, search-only."
+    last_checked: "2026-06-10"
+  - source_id: la_city_mbe
+    name: City of Los Angeles BCA DBE/MBE/WBE Directory
+    geography: Los-Angeles-CA
+    level: city
+    program: MBE/WBE/DBE
+    access: portal
+    url: "https://bca.lacity.gov/CertificationListings/DBEtable.php"
+    confidence: mbe_unverified
+    tier: 2
+    status: blocked
+    status_reason: "Search-only PHP page, 403 to automated fetch, no bulk export."
+    last_checked: "2026-06-10"
+  - source_id: la_county_cbe
+    name: Los Angeles County CBE
+    geography: Los-Angeles-County-CA
+    level: county
+    program: CBE
+    access: portal
+    url: "https://www.ajcc.lacounty.gov/businesses/office-of-small-business/certifications"
+    confidence: mbe_unverified
+    tier: 3
+    status: blocked
+    status_reason: "WebVen portal, search-only, no exposed ethnicity."
+    last_checked: "2026-06-10"
+  - source_id: charlotte_cbi
+    name: Charlotte Business INClusion Certified Vendors
+    geography: Charlotte-NC
+    level: city
+    program: MWSBE
+    access: portal
+    url: "https://www.charlottenc.gov/Growth-and-Development/CBI/CBI-Certified-Vendors"
+    confidence: mbe_unverified
+    tier: 3
+    status: blocked
+    status_reason: "InclusionCLT SDMS portal, search-only."
+    last_checked: "2026-06-10"
+  - source_id: columbus_odi
+    name: City of Columbus ODI Certifications
+    geography: Columbus-OH
+    level: city
+    program: MBE/WBE
+    access: portal
+    url: "https://www.columbus.gov/.../Business-Certifications"
+    confidence: confirmed_black
+    tier: 3
+    status: blocked
+    status_reason: "Race/gender-based MBE/WBE but no open-data directory; department/portal access only."
+    last_checked: "2026-06-10"
+  - source_id: san_antonio_sbeda
+    name: City of San Antonio SBEDA
+    geography: San-Antonio-TX
+    level: city
+    program: SBE/MBE/WBE
+    access: portal
+    url: "https://data.sanantonio.gov/dataset/small-business-economic-development-advocacy"
+    confidence: mbe_unverified
+    tier: 3
+    status: blocked
+    status_reason: "Open data only has the SBEDA annual report (aggregate), not a firm directory. Certification via regional SCTRCA portal."
+    last_checked: "2026-06-10"
+  - source_id: dallas_mwbe
+    name: City of Dallas M/WBE Program
+    geography: Dallas-TX
+    level: city
+    program: MWBE
+    access: portal
+    url: "https://dallascityhall.com/departments/procurement/Pages/mwbe_certification.aspx"
+    confidence: mbe_unverified
+    tier: 3
+    status: blocked
+    status_reason: "City accepts third-party certs (NCTRCA, DFW MSDC, WBC-SW); no city directory. NCTRCA is a candidate regional source."
+    last_checked: "2026-06-10"
+  - source_id: sba_dsbs
+    name: SBA Dynamic Small Business Search (DSBS)
+    geography: US-national
+    level: federal
+    program: SDB/8(a)/WOSB/HUBZone/VOSB
+    access: portal
+    url: "https://search.certifications.sba.gov/"
+    confidence: mbe_unverified
+    tier: 2
+    status: blocked
+    status_reason: "Search-only (pages of ≤500), no bulk export; substrate is SAM.gov (no public race field). Profiles show cert flags (8(a), SDB, WOSB), not ethnicity. 8(a) already covered by sam_8a."
+    last_checked: "2026-06-10"
+  - source_id: fhwa_dbe_ucp
+    name: FHWA/USDOT DBE Unified Certification Programs (state UCPs)
+    geography: US-national
+    level: federal
+    program: DBE/ACDBE
+    access: portal
+    url: "https://www.transportation.gov/civil-rights/disadvantaged-business-enterprise"
+    confidence: mbe_unverified
+    tier: 2
+    status: blocked
+    status_reason: "No national directory; ~50 separate state UCP directories (handled individually above as state DBE entries). Mostly portal-only; a few expose ethnicity (NV/CO/CA). Not a single buildable source."
+    last_checked: "2026-06-10"
+  - source_id: ak_aucp_dbe
+    name: Alaska UCP DBE Directory
+    geography: AK
+    level: state
+    program: DBE
+    access: pdf
+    url: "https://dot.alaska.gov/cvlrts/directory.shtml"
+    confidence: mbe_unverified
+    tier: 2
+    status: blocked
+    status_reason: "PDF + B2Gnow; per-firm only 'Minority-Owned? Yes/No', no ethnicity. B2Gnow results not downloadable."
+    last_checked: "2026-06-10"
+  - source_id: hi_hdot_dbe
+    name: Hawaii DOT DBE/ACDBE Directory
+    geography: HI
+    level: state
+    program: DBE
+    access: portal
+    url: "https://hdot.dbesystem.com/"
+    confidence: mbe_unverified
+    tier: 3
+    status: blocked
+    status_reason: "B2Gnow, public search form not reachable (404s), login-oriented. Under USDOT IFR reevaluation."
+    last_checked: "2026-06-10"
+  - source_id: me_dbe
+    name: Maine DOT DBE Directory
+    geography: ME
+    level: state
+    program: DBE
+    access: pdf
+    url: "https://www.maine.gov/dot/doing-business/civil-rights/dbe"
+    confidence: mbe_unverified
+    tier: 2
+    status: blocked
+    status_reason: "No state MBE program; only a MaineDOT DBE PDF. Needs PDF extraction + confirmation that ownership race is printed per firm."
+    last_checked: "2026-06-10"
+  - source_id: nh_dbe
+    name: New Hampshire DOT Unified DBE Directory
+    geography: NH
+    level: state
+    program: DBE
+    access: pdf
+    url: "https://www.dot.nh.gov/document/disadvantaged-business-enterprise-directory"
+    confidence: mbe_unverified
+    tier: 2
+    status: blocked
+    status_reason: "NH explicitly has no state MBE program; only a monthly NHDOT DBE PDF. PDF extraction + confirm per-firm race."
+    last_checked: "2026-06-10"
+  - source_id: vt_dbe
+    name: Vermont VTrans DBE Directory
+    geography: VT
+    level: state
+    program: DBE
+    access: portal
+    url: "https://apps.vtrans.vermont.gov/dberegistry/dberegistry.aspx"
+    confidence: mbe_unverified
+    tier: 2
+    status: blocked
+    status_reason: "ASP.NET registry, report/print only, no confirmed bulk export; per-firm race not confirmed exposed."
+    last_checked: "2026-06-10"
+  - source_id: pr_dtop_dbe
+    name: Puerto Rico ACT/DTOP DBE Directory
+    geography: PR
+    level: territory
+    program: DBE
+    access: pdf
+    url: "https://act.dtop.pr.gov/civil-rights/disadvantaged-business-enterprise/"
+    confidence: mbe_unverified
+    tier: 3
+    status: blocked
+    status_reason: "Periodic PDF behind a JS/redirect challenge; DBE has no ethnicity column. mbe_unverified at best."
+    last_checked: "2026-06-10"
+  - source_id: vi_ucp_dbe
+    name: US Virgin Islands UCP DBE Directory
+    geography: VI
+    level: territory
+    program: DBE
+    access: pdf
+    url: "https://dpw.vi.gov/wp-content/uploads/2024/12/NEW-DBE-Directory-12.2024.pdf"
+    confidence: mbe_unverified
+    tier: 3
+    status: blocked
+    status_reason: "PDF directory, no per-firm ethnicity field."
+    last_checked: "2026-06-10"
+
+  # ─────────────────────────────────────────────────────────────────────
+  # NO_DATA — no public certified-firm directory, or race-neutral program
+  # ─────────────────────────────────────────────────────────────────────
+  - source_id: ga_doas_sbsd
+    name: Georgia DOAS Small Business & Supplier Diversity
+    geography: GA
+    level: state
+    program: Small Business
+    access: none
+    confidence: mbe_unverified
+    status: no_data
+    status_reason: "Size-based program, no public roster. Real minority certifier is the private GMSDC (members-only). No public ethnicity-tagged source."
+    last_checked: "2026-06-10"
+  - source_id: wv_mwbe
+    name: West Virginia SWAM (Purchasing Division)
+    geography: WV
+    level: state
+    program: SWAM
+    access: none
+    confidence: confirmed_black
+    status: no_data
+    status_reason: "Certification folded into wvOASIS vendor registration; no public directory/roster. Ethnicity captured (African American/Asian/Hispanic/Native American) but unpublished. Records request only."
+    last_checked: "2026-06-10"
+  - source_id: la_hudson
+    name: Louisiana Hudson Initiative (LED)
+    geography: LA
+    level: state
+    program: Hudson Initiative
+    access: excel_download
+    confidence: mbe_unverified
+    status: no_data
+    status_reason: "State program is RACE/GENDER-NEUTRAL — Excel export exists but cannot identify Black firms. MBE cert is privatized to SRMSDC. No usable public state source."
+    last_checked: "2026-06-10"
+  - source_id: wy_dbe
+    name: Wyoming WYDOT DBE Directory
+    geography: WY
+    level: state
+    program: DBE
+    access: none
+    confidence: mbe_unverified
+    status: no_data
+    status_reason: "Directory 'Under Construction'; no published list. No state MBE program. Records request only."
+    last_checked: "2026-06-10"
+  - source_id: phoenix_sbe
+    name: City of Phoenix SBE/DBE Directory
+    geography: Phoenix-AZ
+    level: city
+    program: SBE/DBE
+    access: portal
+    confidence: mbe_unverified
+    status: no_data
+    status_reason: "Primary program is SBE — explicitly no ethnic/gender requirement. Not a Black-ownership directory."
+    last_checked: "2026-06-10"
+  - source_id: sf_lbe
+    name: San Francisco CMD LBE Directory
+    geography: San-Francisco-CA
+    level: city
+    program: LBE
+    access: portal
+    confidence: mbe_unverified
+    status: no_data
+    status_reason: "LBE is race/gender-neutral by ordinance (post-Prop 209). No minority designation."
+    last_checked: "2026-06-10"
+  - source_id: seattle_wmbe
+    name: City of Seattle WMBE
+    geography: Seattle-WA
+    level: city
+    program: WMBE/DBE
+    access: portal
+    confidence: mbe_unverified
+    status: no_data
+    status_reason: "Relies on WA State OMWBE certification (see wa_omwbe). No standalone Seattle open-data directory."
+    last_checked: "2026-06-10"
+  - source_id: gu_dbe
+    name: Guam DBE Program (DPW/GRTA)
+    geography: GU
+    level: territory
+    program: DBE
+    access: none
+    status: no_data
+    status_reason: "DBE program exists but no public certified-firm directory found. Records request only."
+    last_checked: "2026-06-10"
+  - source_id: as_dbe
+    name: American Samoa DBE Program (ASG DPW)
+    geography: AS
+    level: territory
+    program: DBE
+    access: none
+    status: no_data
+    status_reason: "No public DBE directory found. Records request only."
+    last_checked: "2026-06-10"
+  - source_id: mp_cnmi_dbe
+    name: CNMI DBE Program (Commonwealth Ports Authority)
+    geography: MP
+    level: territory
+    program: DBE
+    access: none
+    status: no_data
+    status_reason: "CPA DBE page describes eligibility/contact only; no published directory. Records request only."
+    last_checked: "2026-06-10"
+  - source_id: ca_dgs_sb_dvbe
+    name: California DGS SB & DVBE Directory
+    geography: CA
+    level: state
+    program: SB/DVBE
+    access: portal
+    confidence: mbe_unverified
+    status: no_data
+    status_reason: "State SB/DVBE program is size/veteran-based; only voluntary self-reported diversity since 2023. Use ca_cucp_dbe instead. (CA Black-owned data lives in the blocked CUCP DBE directory.)"
+    last_checked: "2026-06-10"

@@ -67,11 +67,13 @@ def write_summary(
     records_dropped: int,
     sources_run: list[str],
     sources_failed: list[str],
+    sources_carried_forward: list[str] = None,
 ) -> None:
     """Write a human-readable run report.
 
     Note: overwrites output_path if it already exists.
     """
+    sources_carried_forward = sources_carried_forward or []
     output_path.parent.mkdir(parents=True, exist_ok=True)
     lines = [
         f"BBRT Quarterly Pipeline — {snapshot_id}",
@@ -82,5 +84,7 @@ def write_summary(
         f"",
         f"Sources run ({len(sources_run)}): {', '.join(sources_run) or 'none'}",
         f"Sources failed ({len(sources_failed)}): {', '.join(sources_failed) or 'none'}",
+        f"Sources carried forward ({len(sources_carried_forward)}): "
+        f"{', '.join(sources_carried_forward) or 'none'}",
     ]
     output_path.write_text("\n".join(lines) + "\n")
