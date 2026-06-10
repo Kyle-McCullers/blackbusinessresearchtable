@@ -17,18 +17,27 @@ Full original spec is in `research_table_claudecode_memo.md`. Architecture for t
 **Sub-project 1 (Pipeline Infrastructure): COMPLETE**
 **Sub-project 2 (National Expansion — State/Federal Adapters): IN PROGRESS**
 
-Database: `data/bbrt.duckdb` — 13,948 businesses across 2026-Q2 snapshot.
+Database: `data/bbrt.duckdb` — 14,575 businesses across 2026-Q2 snapshot.
 
 | Adapter | Source | Type | Count |
 |---|---|---|---|
 | `md_mbe` | Maryland MBE | `confirmed_black` | 5,403 |
 | `tx_hub` | Texas HUB | `confirmed_black` | 4,074 |
 | `nyc_mwbe` | NYC MWBE | `confirmed_black` | 3,775 |
+| `in_idoa` | Indiana IDOA | `confirmed_black` | 627 |
 | `ma_sdo` | Massachusetts SDO | `confirmed_black` | 593 |
 | `al_ombe` | Alabama OMBE | `confirmed_black` | 103 |
-| `sam_8a` | SAM.gov 8(a) | `mbe_unverified` | (not yet in DB — requires `SAM_GOV_API_KEY`) |
+| `sam_8a` | SAM.gov 8(a) | `mbe_unverified` | (not in DB — SAM.gov entity API returns 404 with a data.gov key; needs a SAM.gov system account) |
 
-**Next step:** Add remaining Tier 1 sources from the design spec (`wa_omwbe`, `dc_cbe`), then Tier 2 states.
+`in_idoa` count is unique firms (deduplicated on Bidder ID); the source has 4,759
+African-American commodity-code rows that collapse to 627 firms.
+
+**Expansion is now roadmap-driven.** See `scripts/sources_roadmap.yml` for the full
+national inventory (built / buildable / blocked / no_data). Per the 2026-06-10
+decisions (`DECISIONS.md`), the big push prioritizes auto-fetch (API/URL) sources:
+next up are `ct_das_smbe`, `de_osd` (Socrata), then `or_cobid`, `nv_dbe`, `sc_smbcc`
+(direct Excel URLs). File-based sources (`md_mbe`, `ma_sdo`, `in_idoa`) refresh only
+when a file is provided; the pipeline carries them forward otherwise.
 
 ---
 
