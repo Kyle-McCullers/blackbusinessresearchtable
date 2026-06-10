@@ -79,10 +79,19 @@ class InIdoaAdapter(AdapterBase):
         wb = openpyxl.load_workbook(str(self._file_path), read_only=True, data_only=True)
         try:
             ws = wb.active
+            # The IDOA export declares a bogus worksheet dimension (e.g. "A1:A1"),
+            # which makes read-only iteration yield only the first column and then
+            # an empty slice from min_row=2. Recompute the true used range first.
+            ws.reset_dimensions()
             all_rows = list(ws.iter_rows(min_row=HEADER_ROW, values_only=True))
         finally:
             wb.close()
 
+        if not all_rows:
+            raise ValueError(
+                "Indiana IDOA file has no rows at or after the header row "
+                f"(row {HEADER_ROW}): {self._file_path}"
+            )
         header = all_rows[0]  # first row of our slice is the column header
         col = {str(name).strip(): i for i, name in enumerate(header) if name is not None}
 
