@@ -1421,3 +1421,100 @@ def test_de_empty_when_no_baa():
     with patch("requests.get", return_value=_ct_response(csv_text)):
         records = DeOsdAdapter().run()
     assert records == []
+
+
+# ── sc_smbcc adapter tests ────────────────────────────────────────────────────
+
+from adapters.sc_smbcc import ScSmbccAdapter
+
+_SC_HEADERS = [
+    None, "Organization Lookup", None, "DBA", "Business Address", "Business City",
+    "Business State", "Business Zip", "Year Established", "Business Phone",
+    "Vendor Registration Number", "Services", "Service Area", "Business Email",
+    "Class", "Certification ID", "Date Certified", "Expiration Date",
+]
+
+
+def _make_sc_xlsx_bytes(data_rows: list[list]) -> bytes:
+    """Build an SMBCC-format workbook: preamble rows, a header row, then data."""
+    wb = _openpyxl.Workbook()
+    ws = wb.active
+    ws.append([None])
+    ws.append([None, "SMBCC Excel Report for Website"])
+    ws.append([None, "As of 2026-06-02"])
+    for _ in range(6):
+        ws.append([None])              # variable preamble (header is NOT at a fixed row)
+    ws.append(_SC_HEADERS)
+    for row in data_rows:
+        ws.append(row)
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
+
+
+def _sc_data_row(name="Palmetto Builders LLC", dba="", address="100 Main St",
+                 city="Columbia", state="SC", zipcode="29201", year="2015",
+                 phone="803-555-0100", vendor_id="V12345", services="Construction",
+                 area="Statewide", email="info@palmetto.com",
+                 class_val="01 - African American Male Owners",
+                 cert_id="202581", date_cert="2024-01-01", exp="2026-01-01"):
+    # Positions match _SC_HEADERS (index 0 and 2 are unnamed/blank columns).
+    return [None, name, None, dba, address, city, state, zipcode, year, phone,
+            vendor_id, services, area, email, class_val, cert_id, date_cert, exp]
+
+
+def _sc_fetch_mock(xlsx_bytes: bytes):
+    """side_effect for requests.get: 1st call = landing HTML, 2nd = xlsx bytes."""
+    landing = MagicMock()
+    landing.text = '<a href="/files/SC%20Cert%20List%2006.02.26.xlsx">download</a>'
+    landing.raise_for_status = MagicMock()
+    xlsx = MagicMock()
+    xlsx.content = xlsx_bytes
+    xlsx.raise_for_status = MagicMock()
+    return [landing, xlsx]
+
+
+def test_sc_filters_to_black_class_codes():
+    xlsx = _make_sc_xlsx_bytes([
+        _sc_data_row(name="AA Male Co", class_val="01 - African American Male Owners"),
+        _sc_data_row(name="AA Female Co", class_val="02 - African American Female Owners"),
+        _sc_data_row(name="DLT AA Co", class_val="05 - DLT Certified AA Male/Female"),
+        _sc_data_row(name="Cauc Female Co", class_val="03- Caucasian Female Owners"),
+        _sc_data_row(name="Hisp Co", class_val="04 - Hispanic Male/Female Owners"),
+        _sc_data_row(name="Asian Co", class_val="09 - Asian Pacific or Other"),
+    ])
+    with patch("requests.get", side_effect=_sc_fetch_mock(xlsx)):
+        records = ScSmbccAdapter().run()
+    names = sorted(r["business_name"] for r in records)
+    assert names == ["AA Female Co", "AA Male Co", "DLT AA Co"]
+
+
+def test_sc_maps_standard_fields():
+    xlsx = _make_sc_xlsx_bytes([_sc_data_row(
+        name="Palmetto Builders LLC", address="100 Main St", city="Columbia",
+        state="SC", zipcode="29201", phone="803-555-0100", email="info@palmetto.com",
+        vendor_id="V12345",
+    )])
+    with patch("requests.get", side_effect=_sc_fetch_mock(xlsx)):
+        rec = ScSmbccAdapter().run()[0]
+    assert rec["business_name"] == "Palmetto Builders LLC"
+    assert rec["address_street"] == "100 Main St"
+    assert rec["address_city"] == "Columbia"
+    assert rec["address_state"] == "SC"
+    assert rec["address_zip"] == "29201"
+    assert rec["phone"] == "803-555-0100"
+    assert rec["email"] == "info@palmetto.com"
+    assert rec["source_business_id"] == "V12345"
+
+
+def test_sc_confidence_is_confirmed_black():
+    assert ScSmbccAdapter.CONFIDENCE == "confirmed_black"
+
+
+def test_sc_empty_when_no_black():
+    xlsx = _make_sc_xlsx_bytes([
+        _sc_data_row(class_val="03- Caucasian Female Owners"),
+    ])
+    with patch("requests.get", side_effect=_sc_fetch_mock(xlsx)):
+        records = ScSmbccAdapter().run()
+    assert records == []

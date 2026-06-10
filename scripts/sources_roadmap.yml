@@ -152,10 +152,10 @@ sources:
     ethnicity_values: ["01 African-American Male", "02 African-American Female", "03 Caucasian Female", "04 Hispanic American", "05 African-American currently certified by SCDOT", "06 Caucasian Female SCDOT", "07 Native American", "08 SBA-certified minority", "09 Other (incl. Asian Pacific)"]
     black_filter_values: ["01", "02", "05"]
     tier: 2
-    status: buildable
-    record_estimate: null
+    status: built                 # adapter sc_smbcc.py merged 2026-06-10; 458 records
+    record_estimate: 458          # Class 01(230)+02(227)+05(1)
     last_checked: "2026-06-10"
-    notes: "Verify the code column is physically present in the .xlsx on ingest (page legend confirmed; file not parsed)."
+    notes: "Black indicator is the 'Class' column (not the cert number): 01/02 African American Male/Female, 05 DLT Certified AA. Adapter scrapes the dated .xlsx link from the landing page and finds the header row dynamically. Known minor issue: business names carry a source status suffix (' - New'/' - Renewal')."
   - source_id: nv_dbe
     name: Nevada NUCP DBE Directory (NDOT, B2Gnow)
     geography: NV
