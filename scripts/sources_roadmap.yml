@@ -137,7 +137,8 @@ sources:
     ethnicity_values: ["African American (Black)", "Asian Pacific", "Caucasian (White)", "Hispanic", "Native American (Indian)", "Subcontinent Asian (Asian Indian)", "Other", "Unknown"]
     black_filter_values: ["African American (Black)"]
     tier: 1
-    status: buildable
+    status: blocked
+    status_reason: "Verified 2026-06-10: the 'Download to Excel' is a session-bound form POST (per-session XID in the form action), not a direct URL. Not cleanly auto-fetchable; would need a headless browser. Deferred per the auto-fetch-only decision. Has a confirmed 'African American (Black)' ethnicity value, so high-value if a scraper is ever sanctioned."
     record_estimate: null
     last_checked: "2026-06-10"
   - source_id: sc_smbcc
@@ -168,10 +169,11 @@ sources:
     ethnicity_values: ["Asian-Pacific American", "Black American", "Caucasian", "Hispanic American", "Native American", "Other Minority", "Subcontinent Asian American"]
     black_filter_values: ["Black American"]
     tier: 2
-    status: buildable
+    status: blocked
+    status_reason: "Verified 2026-06-10: the 'Download Entire Directory to Excel' is a session-bound form POST (per-session XID), not a direct URL. Not cleanly auto-fetchable; needs a headless browser. Deferred per the auto-fetch-only decision. Has a confirmed 'Black American' ethnicity value — high-value if a scraper is sanctioned."
     record_estimate: null
     last_checked: "2026-06-10"
-    notes: "'Download Entire Directory to Excel' (leave criteria blank). Certs flagged under USDOT IFR reevaluation but data still live/exportable."
+    notes: "'Download Entire Directory to Excel' exists but is form/session-bound (see status_reason)."
   - source_id: de_osd
     name: Delaware Office of Supplier Diversity 2025
     geography: DE
