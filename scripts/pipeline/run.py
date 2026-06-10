@@ -29,7 +29,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from pipeline.adapter_base import AdapterBase
 from pipeline.db import (
     open_db, upsert_source, write_businesses,
-    write_snapshot_meta, get_registry, upsert_registry,
+    write_snapshot_meta, get_registry, upsert_registry, carry_forward_records,
 )
 from pipeline.entity_resolver import resolve
 from pipeline.geocoder import batch_geocode
@@ -136,20 +136,36 @@ def run(snapshot_id: str = None) -> None:
     geocoded_count = sum(1 for r in all_records if r.get("latitude"))
     print(f"  {geocoded_count}/{len(all_records)} records have coordinates.")
 
+    # Carry forward any source present in the latest snapshot that did NOT run
+    # successfully this cycle (skipped for a missing file, or errored). Without
+    # this, a non-running source would vanish from the snapshot and be recorded
+    # as a wave of false business exits — corrupting the longitudinal panel.
+    # Decision 2026-06-10. Carried records already carry business_id + coords,
+    # so they are injected AFTER resolution/geocoding and their registry rows
+    # are left untouched (no last_seen bump — they were not freshly observed).
+    carried = carry_forward_records(con, snapshot_id, set(sources_run))
+    sources_carried = sorted({r["source_id"] for r in carried})
+    if carried:
+        print(f"\nCarrying forward {len(carried)} records from un-run "
+              f"source(s): {', '.join(sources_carried)}")
+        all_records.extend(carried)
+
     print(f"\nWriting to DuckDB...")
     write_businesses(con, all_records, snapshot_id)
     upsert_registry(con, snapshot_id, new_entries)
 
     records_dropped = max(prior_count - len(all_records), 0)
     write_snapshot_meta(con, snapshot_id, len(all_records),
-                        records_dropped, sources_run, sources_failed)
+                        records_dropped, sources_run, sources_failed,
+                        sources_carried_forward=sources_carried)
 
     print(f"Writing businesses.csv...")
     export_csv(con, CSV_PATH, snapshot_id)
 
     summary_path = SNAPSHOTS_DIR / f"{snapshot_id}-summary.txt"
     write_summary(summary_path, snapshot_id, len(all_records),
-                  records_dropped, sources_run, sources_failed)
+                  records_dropped, sources_run, sources_failed,
+                  sources_carried_forward=sources_carried)
     print(f"Summary: {summary_path}")
 
     con.close()

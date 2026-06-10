@@ -24,7 +24,8 @@ _DDL = [
         records_added   INTEGER NOT NULL,
         records_dropped INTEGER NOT NULL,
         sources_run     VARCHAR NOT NULL,
-        sources_failed  VARCHAR NOT NULL
+        sources_failed  VARCHAR NOT NULL,
+        sources_carried_forward VARCHAR NOT NULL DEFAULT '[]'
     )
     """,
     """
@@ -93,6 +94,14 @@ def open_db(db_path: Path = DB_PATH) -> duckdb.DuckDBPyConnection:
     con = duckdb.connect(str(db_path))
     for stmt in _DDL:
         con.execute(stmt)
+    # Migration: add carried-forward tracking to pre-existing snapshots tables.
+    # DuckDB rejects constraints on ALTER ADD COLUMN, so add a plain column here
+    # (fresh DBs already get the NOT NULL DEFAULT version from CREATE TABLE above;
+    # this only fires for DBs created before the column existed).
+    con.execute(
+        "ALTER TABLE snapshots ADD COLUMN IF NOT EXISTS "
+        "sources_carried_forward VARCHAR"
+    )
     return con
 
 
@@ -158,6 +167,60 @@ def write_businesses(
         )
 
 
+# Column order matches the businesses table DDL above.
+_BUSINESS_COLUMNS = [
+    "business_id", "snapshot_id", "source_id", "source_business_id", "confidence",
+    "business_name", "owner_name", "year_founded", "address_street", "address_city",
+    "address_state", "address_zip", "latitude", "longitude", "industry", "naics_code",
+    "certification", "description", "website", "phone", "email", "instagram_handle",
+    "facebook_url", "tiktok_handle", "yelp_url", "google_maps_url",
+    "discloses_google_maps", "discloses_yelp", "discloses_instagram", "data_source",
+    "last_verified", "source_fields",
+]
+
+
+def carry_forward_records(
+    con: duckdb.DuckDBPyConnection,
+    snapshot_id: str,
+    succeeded_source_ids,
+) -> list[dict]:
+    """Return record dicts for sources that were present in the latest prior
+    snapshot but did NOT successfully run this cycle.
+
+    These are carried into the new snapshot so a source that simply didn't run
+    (missing file, transient error) is never recorded as a wave of business
+    exits. The caller stamps the new snapshot_id (via write_businesses) and must
+    NOT bump the registry last_seen for these — they were not freshly observed.
+    """
+    succeeded = set(succeeded_source_ids)
+    # Latest snapshot at or before the current one. Using <= (not <>) means a
+    # same-quarter re-run also carries un-run sources forward from the rows
+    # already written for this quarter, not just from a prior quarter.
+    prior = con.execute(
+        "SELECT MAX(snapshot_id) FROM businesses WHERE snapshot_id <= ?",
+        [snapshot_id],
+    ).fetchone()[0]
+    if prior is None:
+        return []
+    cols = ", ".join(_BUSINESS_COLUMNS)
+    rows = con.execute(
+        f"SELECT {cols} FROM businesses WHERE snapshot_id = ?",
+        [prior],
+    ).fetchall()
+    carried = []
+    for row in rows:
+        rec = dict(zip(_BUSINESS_COLUMNS, row))
+        if rec["source_id"] in succeeded:
+            continue
+        try:
+            rec["source_fields"] = json.loads(rec["source_fields"]) if rec["source_fields"] else {}
+        except (TypeError, json.JSONDecodeError):
+            rec["source_fields"] = {}
+        rec["carried_forward"] = True
+        carried.append(rec)
+    return carried
+
+
 def write_snapshot_meta(
     con: duckdb.DuckDBPyConnection,
     snapshot_id: str,
@@ -165,14 +228,19 @@ def write_snapshot_meta(
     records_dropped: int,
     sources_run: list[str],
     sources_failed: list[str],
+    sources_carried_forward: list[str] = None,
 ) -> None:
     con.execute(
         """
-        INSERT INTO snapshots VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO snapshots
+            (snapshot_id, run_date, records_added, records_dropped,
+             sources_run, sources_failed, sources_carried_forward)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT (snapshot_id) DO NOTHING
         """,
         [snapshot_id, date.today(), records_added, records_dropped,
-         json.dumps(sources_run), json.dumps(sources_failed)],
+         json.dumps(sources_run), json.dumps(sources_failed),
+         json.dumps(sources_carried_forward or [])],
     )
 
 

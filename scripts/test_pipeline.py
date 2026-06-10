@@ -84,7 +84,7 @@ def test_adapter_missing_fetch_raises():
 
 import duckdb
 import json
-from pipeline.db import open_db, upsert_source, write_businesses, write_snapshot_meta, get_registry, upsert_registry
+from pipeline.db import open_db, upsert_source, write_businesses, write_snapshot_meta, get_registry, upsert_registry, carry_forward_records
 
 
 @pytest.fixture
@@ -191,6 +191,68 @@ def test_upsert_registry_updates_last_seen(tmp_db):
     result = get_registry(tmp_db)
     assert result[0]["last_seen"] == "2026-Q2"
     assert result[0]["first_seen"] == "2026-Q1"
+
+
+# ── carry-forward tests ──────────────────────────────────────────────────────
+
+def test_carry_forward_returns_records_for_unrun_sources(tmp_db):
+    write_businesses(tmp_db, [
+        _make_record(business_id="uuid-1", source_id="src_a", business_name="A Co"),
+        _make_record(business_id="uuid-2", source_id="src_b", business_name="B Co"),
+    ], "2026-Q2")
+    write_snapshot_meta(tmp_db, "2026-Q2", 2, 0, ["src_a", "src_b"], [])
+
+    # New run: only src_a succeeded; src_b did not run this cycle.
+    carried = carry_forward_records(tmp_db, "2026-Q3", {"src_a"})
+
+    ids = {r["business_id"] for r in carried}
+    assert ids == {"uuid-2"}                       # only the un-run source carried
+    assert carried[0]["source_id"] == "src_b"
+    assert carried[0]["business_name"] == "B Co"   # fields preserved verbatim
+
+
+def test_snapshot_meta_records_carried_forward_sources(tmp_db):
+    write_snapshot_meta(tmp_db, "2026-Q3", 10, 0, ["src_a"], [],
+                        sources_carried_forward=["src_b", "src_c"])
+    row = tmp_db.execute(
+        "SELECT sources_carried_forward FROM snapshots WHERE snapshot_id='2026-Q3'"
+    ).fetchone()
+    assert json.loads(row[0]) == ["src_b", "src_c"]
+
+
+def test_snapshot_meta_carried_forward_defaults_empty(tmp_db):
+    write_snapshot_meta(tmp_db, "2026-Q3", 10, 0, ["src_a"], [])
+    row = tmp_db.execute(
+        "SELECT sources_carried_forward FROM snapshots WHERE snapshot_id='2026-Q3'"
+    ).fetchone()
+    assert json.loads(row[0]) == []
+
+
+def test_carry_forward_empty_when_all_sources_ran(tmp_db):
+    write_businesses(tmp_db, [
+        _make_record(business_id="uuid-1", source_id="src_a"),
+    ], "2026-Q2")
+    write_snapshot_meta(tmp_db, "2026-Q2", 1, 0, ["src_a"], [])
+    carried = carry_forward_records(tmp_db, "2026-Q3", {"src_a"})
+    assert carried == []
+
+
+def test_carry_forward_uses_only_latest_prior_snapshot(tmp_db):
+    # src_b appears only in the older snapshot; it should NOT be resurrected
+    # from an old snapshot once it has dropped out of the latest one.
+    write_businesses(tmp_db, [
+        _make_record(business_id="uuid-1", source_id="src_a"),
+        _make_record(business_id="uuid-2", source_id="src_b"),
+    ], "2026-Q1")
+    write_snapshot_meta(tmp_db, "2026-Q1", 2, 0, ["src_a", "src_b"], [])
+    write_businesses(tmp_db, [
+        _make_record(business_id="uuid-1", source_id="src_a"),
+    ], "2026-Q2")
+    write_snapshot_meta(tmp_db, "2026-Q2", 1, 0, ["src_a"], [])
+
+    carried = carry_forward_records(tmp_db, "2026-Q3", set())
+    ids = {r["business_id"] for r in carried}
+    assert ids == {"uuid-1"}   # only what was in the latest (2026-Q2) snapshot
 
 
 # ── entity_resolver tests ────────────────────────────────────────────────────
