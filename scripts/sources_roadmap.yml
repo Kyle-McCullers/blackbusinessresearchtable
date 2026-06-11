@@ -202,10 +202,10 @@ sources:
     ethnicity_values: ["African American", "Hispanic American", "Asian American", "Native American"]
     black_filter_values: ["African American"]
     tier: 2
-    status: buildable
+    status: blocked
+    status_reason: "Verified 2026-06-11: same session-bound gob2g export as OR/NV (per-session XID in the form action) — not a direct URL. Not cleanly auto-fetchable; needs a headless browser. Deferred per the auto-fetch-only decision."
     record_estimate: null
-    last_checked: "2026-06-10"
-    notes: "'Download Entire Directory to Excel'. Confirm the export carries an ethnicity column before classifying confirmed_black; if absent, downgrade to mbe_unverified."
+    last_checked: "2026-06-11"
   - source_id: va_swam
     name: Virginia SWaM & DBE Directory (SBSD)
     geography: VA
@@ -218,10 +218,10 @@ sources:
     ethnicity_values: ["UNVERIFIED — field confirmed in JS bundle; values not enumerable from curl (endpoint needs session/CSRF shaping)"]
     black_filter_values: ["African American (presumed; confirm from a live record)"]
     tier: 2
-    status: buildable
+    status: blocked
+    status_reason: "Verified 2026-06-11: GET /getApplication returns HTTP 500 to every well-formed request (full param set, session cookies, header variants; POST gives 405 so it is GET-only). The endpoint errors server-side or requires browser-internal state. /getAllFilters works, but the firm-list endpoint does not. Needs deeper browser-session reverse-engineering. High-value (per-firm ethnicity, statewide) if a scraper is ever sanctioned."
     record_estimate: null
-    last_checked: "2026-06-10"
-    notes: "REST endpoints on host: GET /getApplication (paged, returned 500 to bare curl — needs request-shaping), /getAllFilters, /exportToExcel (email-gated). Requires modest reverse-engineering."
+    last_checked: "2026-06-11"
   - source_id: baltimore_mwboo
     name: Baltimore City MBE/WBE Certification Data (MWBOO)
     geography: Baltimore-MD
@@ -234,10 +234,10 @@ sources:
     ethnicity_values: ["African American", "Hispanic American", "Asian American", "Native American"]
     black_filter_values: ["African American"]
     tier: 2
-    status: buildable
+    status: blocked
+    status_reason: "Verified 2026-06-11: the Socrata mirror (us2p-bijb) now 404s; data.baltimorecity.gov is an ArcGIS Hub SPA whose feature-service URL is not exposed in the static page and whose candidate item IDs do not resolve via the ArcGIS items API. The ethnicity column was never confirmed published. Needs ArcGIS Hub reverse-engineering + column verification. Overlaps state md_mbe geography."
     record_estimate: null
-    last_checked: "2026-06-10"
-    notes: "One-off manual column check needed (feature-service schema queries 404'd). If a race/group column is published, this is confirmed_black; overlaps state md_mbe geography — dedupe on entity resolution."
+    last_checked: "2026-06-11"
 
   # ─────────────────────────────────────────────────────────────────────
   # BUILDABLE — mbe_unverified (coverage, flagged; no ethnicity breakdown)
