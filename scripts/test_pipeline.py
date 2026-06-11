@@ -397,6 +397,21 @@ def test_batch_geocode_returns_coords_for_matched_records():
     assert abs(lon - (-73.944)) < 0.001
 
 
+def test_batch_geocode_survives_network_failure():
+    # A network drop (e.g. laptop sleeps) must NOT crash the pipeline and lose
+    # the whole run — geocoding degrades to "no coords this run".
+    import requests as _requests
+    with patch("requests.post",
+               side_effect=_requests.exceptions.ConnectionError("DNS fail")), \
+         patch("time.sleep"):
+        result = batch_geocode([{
+            "business_id": "uuid-1", "address_street": "1 Main St",
+            "address_city": "Hartford", "address_state": "CT",
+            "address_zip": "06103",
+        }])
+    assert result == {}
+
+
 def test_batch_geocode_skips_non_match():
     census_csv = [
         '"uuid-2","Bad Address, Nowhere, NY, 00000","No_Match","","","",,',

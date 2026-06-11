@@ -17,16 +17,19 @@ Full original spec is in `research_table_claudecode_memo.md`. Architecture for t
 **Sub-project 1 (Pipeline Infrastructure): COMPLETE**
 **Sub-project 2 (National Expansion — State/Federal Adapters): IN PROGRESS**
 
-Database: `data/bbrt.duckdb` — 14,575 businesses across 2026-Q2 snapshot.
+Database: `data/bbrt.duckdb` — 16,338 businesses across 2026-Q2 snapshot (9 states + NYC).
 
-| Adapter | Source | Type | Count |
-|---|---|---|---|
-| `md_mbe` | Maryland MBE | `confirmed_black` | 5,403 |
-| `tx_hub` | Texas HUB | `confirmed_black` | 4,074 |
-| `nyc_mwbe` | NYC MWBE | `confirmed_black` | 3,775 |
-| `in_idoa` | Indiana IDOA | `confirmed_black` | 627 |
-| `ma_sdo` | Massachusetts SDO | `confirmed_black` | 593 |
-| `al_ombe` | Alabama OMBE | `confirmed_black` | 103 |
+| Adapter | Source | Type | Count | Fetch |
+|---|---|---|---|---|
+| `md_mbe` | Maryland MBE | `confirmed_black` | 5,403 | file (manual) |
+| `tx_hub` | Texas HUB | `confirmed_black` | 4,074 | auto (CSV URL) |
+| `nyc_mwbe` | NYC MWBE | `confirmed_black` | 3,775 | file (manual) |
+| `ct_das_smbe` | Connecticut DAS | `confirmed_black` | 970 | auto (Socrata) |
+| `in_idoa` | Indiana IDOA | `confirmed_black` | 627 | file (manual) |
+| `ma_sdo` | Massachusetts SDO | `confirmed_black` | 593 | file (manual) |
+| `sc_smbcc` | South Carolina SMBCC | `confirmed_black` | 458 | auto (xlsx URL) |
+| `de_osd` | Delaware OSD | `confirmed_black` | 335 | auto (Socrata) |
+| `al_ombe` | Alabama OMBE | `confirmed_black` | 103 | file (manual) |
 | `sam_8a` | SAM.gov 8(a) | `mbe_unverified` | (not in DB — SAM.gov entity API returns 404 with a data.gov key; needs a SAM.gov system account) |
 
 `in_idoa` count is unique firms (deduplicated on Bidder ID); the source has 4,759

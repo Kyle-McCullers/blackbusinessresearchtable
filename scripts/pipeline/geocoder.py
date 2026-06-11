@@ -58,19 +58,39 @@ def _geocode_batch(records: list[dict]) -> dict[str, tuple[float, float]]:
         ])
 
     csv_payload = buf.getvalue()
+    response = None
     for attempt in range(3):
-        response = requests.post(
-            CENSUS_URL,
-            data={"benchmark": "Public_AR_Current"},
-            files={"addressFile": ("addresses.csv", csv_payload, "text/csv")},
-            timeout=300,
+        try:
+            response = requests.post(
+                CENSUS_URL,
+                data={"benchmark": "Public_AR_Current"},
+                files={"addressFile": ("addresses.csv", csv_payload, "text/csv")},
+                timeout=300,
+            )
+            if response.ok:
+                break
+            warnings.warn(
+                f"Census Geocoder returned {response.status_code} "
+                f"(attempt {attempt + 1}/3)"
+            )
+        except requests.exceptions.RequestException as e:
+            # Network drop (DNS failure, timeout, connection reset — e.g. the
+            # machine slept mid-run). Don't let it crash the pipeline.
+            warnings.warn(f"Census Geocoder request failed: {e} (attempt {attempt + 1}/3)")
+            response = None
+        if attempt < 2:
+            time.sleep(10 * (2 ** attempt))
+
+    if response is None or not response.ok:
+        # Geocoding is best-effort: skip this batch. The affected records keep
+        # blank coordinates and are picked up by the next run (their lat/lon are
+        # still empty, so to_geocode will re-select them). Losing coordinates for
+        # one run is acceptable; losing the whole run's data is not.
+        warnings.warn(
+            "Census Geocoder unavailable after retries; skipping geocoding for "
+            f"this batch of {len(records)} records (will retry next run)."
         )
-        if response.ok:
-            break
-        wait = 10 * (2 ** attempt)
-        warnings.warn(f"Census Geocoder returned {response.status_code}; retrying in {wait}s (attempt {attempt + 1}/3)")
-        time.sleep(wait)
-    response.raise_for_status()
+        return {}
 
     results: dict[str, tuple[float, float]] = {}
     # Census batch geocoder response format (per Census API docs):
