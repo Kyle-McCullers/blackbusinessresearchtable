@@ -1533,3 +1533,131 @@ def test_sc_empty_when_no_black():
     with patch("requests.get", side_effect=_sc_fetch_mock(xlsx)):
         records = ScSmbccAdapter().run()
     assert records == []
+
+
+# ── or_cobid adapter tests ────────────────────────────────────────────────────
+
+from adapters.or_cobid import OrCobidAdapter
+
+_OR_HEADERS = ["Company Name", "DBA Name", "Owner First", "Owner Last", "Location",
+               "Phone", "Email", "Website", "Agency", "Certification Type",
+               "Ethnicity", "Gender", "Capability", "County"]
+
+
+def _make_dir_csv(title, headers, rows):
+    """Build a gob2g/dbesystem-style export: title preamble, header row, data."""
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow([title]); w.writerow(["As of 6/11/2026"]); w.writerow(["Results filtered"])
+    w.writerow([]); w.writerow(["The information provided..."]); w.writerow([])
+    w.writerow(headers)
+    for r in rows:
+        w.writerow(r)
+    return buf.getvalue()
+
+
+def _or_row(name="Acme Black LLC", first="Jordan", last="Smith",
+            location="Portland, OR", phone="503-555-0100", email="a@b.com",
+            website="https://acme.com", cert="MBE",
+            ethnicity="African American (Black)", capability="Consulting"):
+    return [name, "", first, last, location, phone, email, website, "Oregon",
+            cert, ethnicity, "Male", capability, "Multnomah"]
+
+
+def _write_latin1(tmp_path, name, text):
+    p = tmp_path / name
+    p.write_text(text, encoding="latin-1")
+    return p
+
+
+def test_or_filters_to_african_american(tmp_path):
+    csv_text = _make_dir_csv("COBID Certified Firms Directory", _OR_HEADERS, [
+        _or_row(name="Black Co", ethnicity="African American (Black)"),
+        _or_row(name="White Co", ethnicity="Caucasian (White)"),
+        _or_row(name="Hisp Co", ethnicity="Hispanic"),
+    ])
+    p = _write_latin1(tmp_path, "Oregon Directory test.csv", csv_text)
+    records = OrCobidAdapter(file_path=p).run()
+    assert [r["business_name"] for r in records] == ["Black Co"]
+
+
+def test_or_maps_fields_and_parses_location(tmp_path):
+    csv_text = _make_dir_csv("COBID Certified Firms Directory", _OR_HEADERS, [
+        _or_row(name="Black Co", first="Jordan", last="Smith",
+                location="Portland, OR", phone="503-555-0100",
+                email="j@black.co", website="https://black.co"),
+    ])
+    p = _write_latin1(tmp_path, "Oregon Directory test.csv", csv_text)
+    rec = OrCobidAdapter(file_path=p).run()[0]
+    assert rec["business_name"] == "Black Co"
+    assert rec["address_city"] == "Portland"
+    assert rec["address_state"] == "OR"
+    assert rec["owner_name"] == "Jordan Smith"
+    assert rec["phone"] == "503-555-0100"
+    assert rec["email"] == "j@black.co"
+    assert rec["website"] == "https://black.co"
+
+
+def test_or_dedups_same_firm_across_cert_types(tmp_path):
+    csv_text = _make_dir_csv("COBID Certified Firms Directory", _OR_HEADERS, [
+        _or_row(name="Black Co", first="Jordan", last="Smith", location="Portland, OR", cert="ESB"),
+        _or_row(name="Black Co", first="Jordan", last="Smith", location="Portland, OR", cert="MBE"),
+    ])
+    p = _write_latin1(tmp_path, "Oregon Directory test.csv", csv_text)
+    records = OrCobidAdapter(file_path=p).run()
+    assert len(records) == 1
+
+
+def test_or_confidence_is_confirmed_black():
+    assert OrCobidAdapter.CONFIDENCE == "confirmed_black"
+
+
+# ── nv_dbe adapter tests ──────────────────────────────────────────────────────
+
+from adapters.nv_dbe import NvDbeAdapter
+
+_NV_HEADERS = ["Company Name", "DBA Name", "Owner First", "Owner Last",
+               "Physical Address", "City", "State", "Zip",
+               "Mailing Address", "City", "State", "Zip", "Phone", "Fax",
+               "Email", "Website", "Agency", "Certification Type", "Ethnicity",
+               "Gender", "Certified", "Capability", "County"]
+
+
+def _nv_row(name="Acme Black LLC", first="Jordan", last="Smith",
+            paddr="100 Main St", city="Las Vegas", state="NV", zipcode="\t89115",
+            phone="702-555-0100", email="a@b.com", website="https://acme.com",
+            cert="DBE", ethnicity="BLACK AMERICAN", capability="Trucking"):
+    return [name, "", first, last, paddr, city, state, zipcode,
+            paddr, city, state, zipcode, phone, "", email, website, "NDOT",
+            cert, ethnicity, "Male", "2024", capability, "Clark"]
+
+
+def test_nv_filters_black_american_case_insensitive(tmp_path):
+    csv_text = _make_dir_csv("NDOT DBE Vendor List", _NV_HEADERS, [
+        _nv_row(name="Black Co", ethnicity="BLACK AMERICAN"),
+        _nv_row(name="Cauc Co", ethnicity="CAUCASIAN"),
+        _nv_row(name="Hisp Co", ethnicity="HISPANIC AMERICAN"),
+    ])
+    p = _write_latin1(tmp_path, "Nevada Directory test.csv", csv_text)
+    records = NvDbeAdapter(file_path=p).run()
+    assert [r["business_name"] for r in records] == ["Black Co"]
+
+
+def test_nv_maps_physical_address_and_strips_zip_tab(tmp_path):
+    csv_text = _make_dir_csv("NDOT DBE Vendor List", _NV_HEADERS, [
+        _nv_row(name="Black Co", paddr="742 D Street", city="Elko", state="NV",
+                zipcode="\t89801", phone="775-555-0100", email="b@c.co"),
+    ])
+    p = _write_latin1(tmp_path, "Nevada Directory test.csv", csv_text)
+    rec = NvDbeAdapter(file_path=p).run()[0]
+    assert rec["business_name"] == "Black Co"
+    assert rec["address_street"] == "742 D Street"
+    assert rec["address_city"] == "Elko"
+    assert rec["address_state"] == "NV"
+    assert rec["address_zip"] == "89801"   # leading tab stripped
+    assert rec["owner_name"] == "Jordan Smith"
+    assert rec["phone"] == "775-555-0100"
+
+
+def test_nv_confidence_is_confirmed_black():
+    assert NvDbeAdapter.CONFIDENCE == "confirmed_black"

@@ -52,13 +52,29 @@ Legend: ✅ verified against real data | ⚠️ contingent (needs a file/column 
 
 ---
 
+### `or_cobid` — Oregon COBID Certified Firms ✅ (manual capture)
+- **Field:** `Ethnicity`
+- **Distinct values (verbatim, 2026-06-11 full export):**
+  `Caucasian (White)` (2,474), `Hispanic` (834), `African American (Black)` (624),
+  `Asian Pacific` (466), `Native American (Indian)` (169),
+  `Subcontinent Asian (Asian Indian)` (142), `Other` (63), `Unknown` (24)
+- **Black filter:** `African American (Black)` — 624 cert-type rows → **285 unique firms**
+
+### `nv_dbe` — Nevada NDOT DBE ✅ (manual capture)
+- **Field:** `Ethnicity` (values are UPPERCASE in the export)
+- **Distinct values (verbatim, 2026-06-11 full export):**
+  `CAUCASIAN` (228), `BLACK AMERICAN` (227), `HISPANIC AMERICAN` (162),
+  `ASIAN-PACIFIC AMERICAN` (54), `SUBCONTINENT ASIAN AMERICAN` (10),
+  `NATIVE AMERICAN` (9), `OTHER MINORITY` (6)
+- **Black filter:** `BLACK AMERICAN` (case-insensitive) — 227 rows → **113 unique firms**
+
+---
+
 ## Buildable sources (values captured during inventory; confirm on build)
 
 | Source | Field | Black value(s) | Verified |
 |---|---|---|---|
 | `de_osd` | `ddd_baa` (boolean) | `ddd_baa = YES` | ✅ Socrata |
-| `or_cobid` | `Ethnicity` | `African American (Black)` | ✅ dropdown |
-| `nv_dbe` | `Ethnicity` | `Black American` | ✅ B2Gnow |
 | `sc_smbcc` | minority code (in cert #) | `01`, `02`, `05` | ⚠️ confirm column in .xlsx |
 | `va_swam` | `ethnicity` | `African American` (presumed) | ⚠️ confirm from live record |
 | `tn_godbe` | MBE minority group | `African American` | ⚠️ confirm export has the column |
