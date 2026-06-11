@@ -6,3 +6,4 @@ scripts/__pycache__/
 .DS_Store
 .superpowers/
 .worktrees/
+data/manual_downloads/

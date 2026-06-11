@@ -133,14 +133,15 @@ sources:
     access: excel_download
     url: "https://oregon4biz.diversitysoftware.com/FrontEnd/searchcertifieddirectory.asp?TN=oregon4biz&XID=3480"
     confidence: confirmed_black
+    access: manual_download         # gob2g export is session-bound; captured manually
     ethnicity_field_name: "Ethnicity"
-    ethnicity_values: ["African American (Black)", "Asian Pacific", "Caucasian (White)", "Hispanic", "Native American (Indian)", "Subcontinent Asian (Asian Indian)", "Other", "Unknown"]
+    ethnicity_values: ["Caucasian (White)", "Hispanic", "African American (Black)", "Asian Pacific", "Native American (Indian)", "Subcontinent Asian (Asian Indian)", "Other", "Unknown"]
     black_filter_values: ["African American (Black)"]
     tier: 1
-    status: blocked
-    status_reason: "Verified 2026-06-10: the 'Download to Excel' is a session-bound form POST (per-session XID in the form action), not a direct URL. Not cleanly auto-fetchable; would need a headless browser. Deferred per the auto-fetch-only decision. Has a confirmed 'African American (Black)' ethnicity value, so high-value if a scraper is ever sanctioned."
-    record_estimate: null
-    last_checked: "2026-06-10"
+    status: built                 # adapter or_cobid.py built 2026-06-11 from manual CSV export; 285 firms
+    record_estimate: 285          # African American (Black), deduped from 624 cert-type rows
+    last_checked: "2026-06-11"
+    notes: "MANUAL-CAPTURE source: Kyle downloads the full COBID directory CSV to data/manual downloads (Dropbox); adapter reads latin-1, finds header dynamically, filters Ethnicity='African American (Black)', dedups firm+owner+location. Verified verbatim ethnicity values from the real export."
   - source_id: sc_smbcc
     name: South Carolina SMBCC Small & Minority Business Certification List
     geography: SC
@@ -165,15 +166,15 @@ sources:
     access: excel_download
     url: "https://ndot.gob2g.com/FrontEnd/searchcertifieddirectory.asp"
     confidence: confirmed_black
-    ethnicity_field_name: "Ethnicity"
-    ethnicity_values: ["Asian-Pacific American", "Black American", "Caucasian", "Hispanic American", "Native American", "Other Minority", "Subcontinent Asian American"]
-    black_filter_values: ["Black American"]
+    access: manual_download         # gob2g export is session-bound; captured manually
+    ethnicity_field_name: "Ethnicity"   # values are UPPERCASE in the export
+    ethnicity_values: ["CAUCASIAN", "BLACK AMERICAN", "HISPANIC AMERICAN", "ASIAN-PACIFIC AMERICAN", "SUBCONTINENT ASIAN AMERICAN", "NATIVE AMERICAN", "OTHER MINORITY"]
+    black_filter_values: ["BLACK AMERICAN"]
     tier: 2
-    status: blocked
-    status_reason: "Verified 2026-06-10: the 'Download Entire Directory to Excel' is a session-bound form POST (per-session XID), not a direct URL. Not cleanly auto-fetchable; needs a headless browser. Deferred per the auto-fetch-only decision. Has a confirmed 'Black American' ethnicity value — high-value if a scraper is sanctioned."
-    record_estimate: null
-    last_checked: "2026-06-10"
-    notes: "'Download Entire Directory to Excel' exists but is form/session-bound (see status_reason)."
+    status: built                 # adapter nv_dbe.py built 2026-06-11 from manual CSV export; 113 firms
+    record_estimate: 113          # BLACK AMERICAN, deduped from 227 rows
+    last_checked: "2026-06-11"
+    notes: "MANUAL-CAPTURE source: Kyle downloads the full NDOT directory CSV to data/manual downloads (Dropbox). Export has duplicate City/State/Zip (physical+mailing) — adapter uses first occurrence (physical) and strips a leading tab from zip. Ethnicity values are UPPERCASE; filter is case-insensitive. Certs under USDOT IFR reevaluation."
   - source_id: de_osd
     name: Delaware Office of Supplier Diversity 2025
     geography: DE
