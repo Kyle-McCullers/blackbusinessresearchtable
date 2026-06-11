@@ -1,0 +1,29 @@
+column,description
+business_id,Stable UUID for the business across all quarterly snapshots (panel identifier).
+business_name,Legal or registered business name as listed by the certifying source.
+owner_name,Owner/principal name where the source provides it.
+year_founded,"Year the business was established, where available."
+address_street,Street address.
+address_city,City.
+address_state,"State (USPS abbreviation or full name, as provided by the source)."
+address_zip,ZIP code.
+latitude,Latitude (source-provided WKT point or US Census geocoder); blank if not geocoded.
+longitude,Longitude; blank if not geocoded.
+industry,Industry / services description from the source.
+naics_code,NAICS industry code where available.
+certification,"Certification type from the source (e.g., MBE, HUB, DBE, 8(a))."
+description,"Free-text business description from the source, where available."
+website,Business website URL.
+phone,Business phone.
+email,"Business email, where the source publishes it."
+instagram_handle,Instagram handle (reserved; populated by future enrichment).
+facebook_url,Facebook URL (reserved).
+tiktok_handle,TikTok handle (reserved).
+yelp_url,Yelp URL (reserved).
+google_maps_url,Google Maps URL (reserved).
+discloses_google_maps,Whether the business discloses a Google Maps presence (reserved).
+discloses_yelp,Whether the business discloses a Yelp presence (reserved).
+discloses_instagram,Whether the business discloses an Instagram presence (reserved).
+data_source,Human-readable name of the certifying source/program this record came from.
+last_verified,Date this record was last observed in the source.
+confidence,confirmed_black = source has an explicit Black/African American ethnicity field used to filter; mbe_unverified = source identifies only 'minority-owned' with no ethnicity breakdown.

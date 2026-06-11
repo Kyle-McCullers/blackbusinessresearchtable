@@ -318,3 +318,83 @@ footer { background: var(--black); padding: 28px 0; }
 }
 .footer-inner a { color: #aaa; text-decoration: none; }
 .footer-inner a:hover { color: var(--white); }
+
+/* ── V2: filters ────────────────────────────────────────────────────────── */
+.table-controls { flex-direction: column; align-items: stretch; }
+.filter-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.filter-select {
+  border: 1px solid #ccc;
+  padding: 7px 10px;
+  font-size: 13px;
+  border-radius: 2px;
+  font-family: var(--font);
+  background: var(--white);
+  max-width: 220px;
+}
+.filter-select:focus { outline: none; border-color: var(--accent); }
+.filter-select:disabled { background: #f4f4f4; color: #aaa; }
+.result-count { font-size: 12px; color: var(--muted); margin-left: auto; white-space: nowrap; }
+.table-actions { flex-wrap: wrap; }
+
+/* ── V2: secondary buttons (downloads) ────────────────────────────────────── */
+.btn-secondary {
+  display: inline-block;
+  background: var(--white);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 6px 14px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  border-radius: 2px;
+  cursor: pointer;
+  text-decoration: none;
+  font-family: var(--font);
+  transition: background 0.15s, color 0.15s;
+}
+.btn-secondary:hover { background: var(--accent); color: var(--white); }
+
+/* ── V2: confidence badges ────────────────────────────────────────────────── */
+.badge {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+.badge-confirmed  { background: #e3f0e9; color: var(--accent); }
+.badge-unverified { background: #eee; color: #777; }
+.popup-conf { font-size: 10px; color: var(--muted); margin-bottom: 6px; font-style: italic; }
+
+/* ── V2: map legend ────────────────────────────────────────────────────────── */
+.map-legend {
+  background: rgba(255,255,255,0.95);
+  padding: 8px 11px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-size: 11px;
+  line-height: 1.7;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+}
+.legend-title { font-weight: 700; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 4px; }
+.legend-row { display: flex; align-items: center; gap: 7px; color: #333; }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; border: 1px solid #fff; box-shadow: 0 0 0 1px #ccc; flex: 0 0 auto; }
+.legend-swatch { width: 12px; height: 10px; border-radius: 2px; flex: 0 0 auto; }
+.legend-covered   { background: rgba(27,67,50,0.10); border: 1.5px solid var(--accent); }
+.legend-uncovered { background: rgba(0,0,0,0.015); border: 1px solid #cfcfcf; }
+
+/* ── V2: form success ────────────────────────────────────────────────────── */
+.form-success {
+  max-width: 480px;
+  background: #e3f0e9;
+  border-left: 3px solid var(--accent);
+  padding: 18px 20px;
+  margin-bottom: 40px;
+  border-radius: 2px;
+}
+.form-success p { font-size: 14px; color: #2d4a3e; margin-bottom: 14px; }
+.form-success .btn-primary, .form-success .btn-secondary { margin-right: 10px; text-decoration: none; }

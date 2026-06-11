@@ -37,8 +37,8 @@
         policymakers, and anyone who wants to understand the landscape of Black-owned enterprise in America.
       </p>
       <p class="about-text">
-        The database is free to access. To download the full dataset, send a request using the form below
-        with your name, affiliation, and intended use. Please cite the database as:
+        The database is free to access — download the current snapshot (CSV + codebook) directly from the data
+        table below, or request the full longitudinal research panel via the form. Please cite the database as:
         McCullers, K. (2026). <em>Black Business Research Table</em> [Database].
         Retrieved from blackbusinessresearchtable.com.
       </p>
@@ -83,13 +83,19 @@
         <div class="coverage-bar-note" id="coverage-note">of an estimated 160,000 Black-owned employer businesses in the U.S. (2021 Census Annual Business Survey)</div>
       </div>
       <div class="table-controls">
-        <input type="search" id="table-search" placeholder="Search by name, city, or industry…">
+        <div class="filter-row">
+          <select id="filter-state" class="filter-select"><option value="">All states</option></select>
+          <select id="filter-city" class="filter-select" disabled><option value="">All cities</option></select>
+          <input type="search" id="table-search" placeholder="Search by name, city, or industry…">
+          <span id="result-count" class="result-count"></span>
+        </div>
         <div class="table-actions">
           <div class="toggle-group">
             <button id="btn-default" class="toggle-btn active">Default</button>
             <button id="btn-expanded" class="toggle-btn">Expanded</button>
           </div>
-          <button id="btn-request" class="btn-primary">Request Dataset →</button>
+          <a href="data/businesses.csv" download class="btn-secondary">↓ Download CSV</a>
+          <a href="data/codebook.csv" download class="btn-secondary">↓ Codebook</a>
         </div>
       </div>
       <table id="business-table" class="display"></table>
@@ -100,23 +106,28 @@
   <section id="access">
     <div class="section-inner">
       <div class="section-label">Request Dataset</div>
-      <h2>Download the Full Database</h2>
-      <p class="access-intro">The dataset is free to access. Fill out the form below and the full CSV will be sent to you within 48 hours.</p>
-      <form id="dataset-form">
+      <h2>Request the Full Research Panel</h2>
+      <p class="access-intro">The current snapshot is free to download right now — use the <strong>Download CSV</strong> and <strong>Codebook</strong> buttons above the data table. To receive the full longitudinal panel (every quarterly snapshot plus the DuckDB research database), tell us who you are and how you'll use it.</p>
+      <form id="dataset-form" action="https://formspree.io/f/xqeolrkw" method="POST">
         <div class="form-group">
           <label for="req-name">Name</label>
-          <input type="text" id="req-name" placeholder="Your full name" required>
+          <input type="text" id="req-name" name="name" placeholder="Your full name" required>
         </div>
         <div class="form-group">
           <label for="req-affiliation">Affiliation</label>
-          <input type="text" id="req-affiliation" placeholder="University, organization, or independent" required>
+          <input type="text" id="req-affiliation" name="affiliation" placeholder="University, organization, or independent" required>
         </div>
         <div class="form-group">
           <label for="req-use">Intended Use</label>
-          <textarea id="req-use" placeholder="Brief description of how you plan to use the data" required></textarea>
+          <textarea id="req-use" name="intended_use" placeholder="Brief description of how you plan to use the data" required></textarea>
         </div>
         <button type="submit" class="btn-primary">Submit Request →</button>
       </form>
+      <div id="form-success" class="form-success" style="display:none">
+        <p>Thanks — your request is recorded. Download the full research panel:</p>
+        <a href="data/bbrt.duckdb" download class="btn-primary">↓ DuckDB research panel</a>
+        <a href="data/businesses.csv" download class="btn-secondary">↓ Current snapshot CSV</a>
+      </div>
       <div class="citation-block">
         <div class="citation-label">How to Cite</div>
         <div class="citation-text">
@@ -133,7 +144,7 @@
       <span>Built and maintained by
         <a href="https://kylemccullers.com" target="_blank" rel="noopener">Kyle McCullers</a>,
         PhD Candidate, University of Michigan Ross School of Business</span>
-      <span>Last updated April 2026</span>
+      <span>Last updated June 2026</span>
     </div>
   </footer>
 
