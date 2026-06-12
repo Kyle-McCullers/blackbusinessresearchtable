@@ -198,13 +198,13 @@ sources:
     program: MBE/WBE/SDVBE/SBE
     access: excel_download
     url: "https://tn.dbesystem.com/FrontEnd/searchcertifieddirectory.asp"
-    confidence: confirmed_black     # CONTINGENT on export containing the ethnicity column
-    ethnicity_field_name: "MBE minority group (B2Gnow ethnicity field; not a search dropdown)"
-    ethnicity_values: ["African American", "Hispanic American", "Asian American", "Native American"]
-    black_filter_values: ["African American"]
-    tier: 2
+    confidence: mbe_unverified      # export has NO ethnicity column — cannot identify Black firms
+    ethnicity_field_name: null
+    ethnicity_values: []
+    black_filter_values: []
+    tier: 3
     status: blocked
-    status_reason: "Verified 2026-06-11: same session-bound gob2g export as OR/NV (per-session XID in the form action) — not a direct URL. Not cleanly auto-fetchable; needs a headless browser. Deferred per the auto-fetch-only decision."
+    status_reason: "Verified 2026-06-12: Kyle manually exported the full directory (1,715 firms) — the export labels itself '(no ethnicities available to select)' and has NO per-firm ethnicity column (only Certification Type: MBE 618/WBE 656/SBE/SDVBE/DSBE). Cannot identify Black firms. Per the 2026-06-12 confirmed_black-only policy (DECISIONS.md), not loaded."
     record_estimate: null
     last_checked: "2026-06-11"
   - source_id: va_swam
@@ -526,8 +526,8 @@ sources:
     confidence: mbe_unverified
     tier: 2
     status: blocked
-    status_reason: "Has 'Download Results to Excel' but no ethnicity SEARCH field. CHECK EXPORT COLUMNS: B2Gnow stores ethnicity at registration; the Excel may contain a hidden ethnicity column — a one-off download could flip this to confirmed_black."
-    last_checked: "2026-06-10"
+    status_reason: "Verified 2026-06-12: Kyle exported the full directory (31 firms) — NO ethnicity column ('no ethnicities available to select'). Cannot identify Black firms. Not loaded per the confirmed_black-only policy."
+    last_checked: "2026-06-12"
   - source_id: id_dbe
     name: Idaho ITD DBE Directory (B2Gnow)
     geography: ID
@@ -538,8 +538,8 @@ sources:
     confidence: mbe_unverified
     tier: 2
     status: blocked
-    status_reason: "Excel export, no ethnicity search field. Same as UT — check export columns for a hidden ethnicity field before writing off."
-    last_checked: "2026-06-10"
+    status_reason: "Verified 2026-06-12: Kyle exported the full directory (42 firms) — NO ethnicity column. Cannot identify Black firms. Not loaded per the confirmed_black-only policy."
+    last_checked: "2026-06-12"
   - source_id: nm_dbe
     name: New Mexico NMDOT DBE Directory (B2Gnow)
     geography: NM
@@ -550,8 +550,8 @@ sources:
     confidence: mbe_unverified
     tier: 2
     status: blocked
-    status_reason: "Newer B2Gnow template — no ethnicity filter and no visible Excel export button. ~130 firms."
-    last_checked: "2026-06-10"
+    status_reason: "Verified 2026-06-12: no ethnicity field and no working download button once the directory (401 firms) populates. Cannot identify Black firms. Not loaded per the confirmed_black-only policy."
+    last_checked: "2026-06-12"
   - source_id: ok_dbe
     name: Oklahoma ODOT DBE Directory
     geography: OK
@@ -562,8 +562,8 @@ sources:
     confidence: mbe_unverified
     tier: 2
     status: blocked
-    status_reason: "Two directories (Oracle-APEX + B2Gnow okdot.gob2g.com), both with Excel export but no ethnicity field. ~368 firms. Check B2Gnow export columns."
-    last_checked: "2026-06-10"
+    status_reason: "Verified 2026-06-12: no ethnicity field and no working download button once the directory (83 firms) populates. Cannot identify Black firms. Not loaded per the confirmed_black-only policy."
+    last_checked: "2026-06-12"
   - source_id: mt_dbe
     name: Montana MDT DBE/SBE Directory
     geography: MT
