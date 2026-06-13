@@ -7,3 +7,4 @@ scripts/__pycache__/
 .superpowers/
 .worktrees/
 data/manual_downloads/
+data/mbe_frame.duckdb
