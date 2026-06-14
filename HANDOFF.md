@@ -4,6 +4,16 @@ Dated entries for resuming work across sessions. Most recent entry first.
 
 ---
 
+## 2026-06-14 — Mapbox GL is LIVE on main
+
+Migrated the site map from Leaflet to **Mapbox GL JS (Light v11)** and shipped it to production (commit `0168121`). The three front-end files (`index.html`, `js/main.js`, `css/style.css`) were lifted from the old `feature/mapbox-gl` branch onto current `main` (the branch was stale — pre-dated the 5-adapter / 28,964-firm load — so it was NOT merged wholesale; only the 3 map files were applied, then the stale branch was deleted).
+
+Token handling (the thing that had blocked go-live): Kyle created a **new URL-restricted public token** (`pk.…syliFAQ`, restricted to blackbusinessresearchtable.com + www + localhost:8000) — the old unrestricted default token is no longer in the code. GitHub push-protection still flags any Mapbox token; Kyle used the one-time "allow secret" unblock link, then the push succeeded. Going forward, refreshing the token = edit `js/main.js:7` and re-trigger the same unblock flow.
+
+Map style is Light v11 (chosen over Dark/Standard/custom). Optional future polish: a branded monochrome Mapbox Studio style — swap one line (`js/main.js:96`).
+
+---
+
 ## 2026-06-13 (evening) — 5 queued adapters built + loaded → 16 states, 28,964 firms
 
 Built, TDD-tested, and loaded the five queued confirmed_black adapters. **Public DB is now 28,964 confirmed_black businesses across 16 states + NYC** (snapshot 2026-Q2), up from 16,736 / 11 states.
