@@ -12,19 +12,24 @@ Full original spec is in `research_table_claudecode_memo.md`. Architecture for t
 
 ---
 
-## Current State (as of 2026-04-03)
+## Current State (as of 2026-06-13)
 
 **Sub-project 1 (Pipeline Infrastructure): COMPLETE**
 **Sub-project 2 (National Expansion — State/Federal Adapters): IN PROGRESS**
 
-Database: `data/bbrt.duckdb` — 16,736 businesses across 2026-Q2 snapshot (11 states + NYC).
+Database: `data/bbrt.duckdb` — 28,964 businesses across 2026-Q2 snapshot (16 states + NYC), all `confirmed_black`.
 
 | Adapter | Source | Type | Count | Fetch |
 |---|---|---|---|---|
 | `md_mbe` | Maryland MBE | `confirmed_black` | 5,403 | file (manual) |
+| `va_swam` | Virginia SWaM/DBE | `confirmed_black` | 4,841 | manual capture (xlsx) |
 | `tx_hub` | Texas HUB | `confirmed_black` | 4,074 | auto (CSV URL) |
 | `nyc_mwbe` | NYC MWBE | `confirmed_black` | 3,775 | file (manual) |
+| `nc_hub` | North Carolina HUB | `confirmed_black` | 3,615 | manual capture (csv) |
+| `fl_mbe` | Florida OSD MBE (African American) | `confirmed_black` | 1,898 | manual capture (3× xlsx) |
 | `ct_das_smbe` | Connecticut DAS | `confirmed_black` | 970 | auto (Socrata) |
+| `ca_mbe` | California DGS MBE (2026 snapshot) | `confirmed_black` | 959 | manual capture (csv) |
+| `ar_mwbe` | Arkansas M/WBE Registry | `confirmed_black` | 915 | manual capture (csv) |
 | `in_idoa` | Indiana IDOA | `confirmed_black` | 627 | file (manual) |
 | `ma_sdo` | Massachusetts SDO | `confirmed_black` | 593 | file (manual) |
 | `sc_smbcc` | South Carolina SMBCC | `confirmed_black` | 458 | auto (xlsx URL) |
@@ -34,9 +39,17 @@ Database: `data/bbrt.duckdb` — 16,736 businesses across 2026-Q2 snapshot (11 s
 | `al_ombe` | Alabama OMBE | `confirmed_black` | 103 | file (manual) |
 | `sam_8a` | SAM.gov 8(a) | `mbe_unverified` | (not in DB — SAM.gov entity API returns 404 with a data.gov key; needs a SAM.gov system account) |
 
-Manual-capture sources (`or_cobid`, `nv_dbe`) read CSV exports Kyle downloads to the
-Dropbox `data/manual downloads` folder; the pipeline carries them forward on
-quarters where no fresh file is provided.
+Manual-capture sources (`va_swam`, `nc_hub`, `fl_mbe`, `ca_mbe`, `ar_mwbe`,
+`or_cobid`, `nv_dbe`) read CSV/xlsx exports Kyle downloads to the Dropbox
+`data/manual downloads` folder (CA reads its April-2026 snapshot from the
+`Data/US State(s) Administrative Data/California` folder); the pipeline carries
+them forward on quarters where no fresh file is provided.
+
+Each adapter's docstring records the exact ethnicity field name and all distinct
+values observed (verbatim) for QC. Filters: VA `Ethnicity == "Black or African
+American"`; NC `HUB == "Certified"` AND `HUBCategory == "Black"`; FL export
+pre-filtered to African American (no per-row field); CA `Ethnicity == "Black
+American"`; AR `VendorCategory in {"African American", "African-American"}`.
 
 `in_idoa` count is unique firms (deduplicated on Bidder ID); the source has 4,759
 African-American commodity-code rows that collapse to 627 firms.

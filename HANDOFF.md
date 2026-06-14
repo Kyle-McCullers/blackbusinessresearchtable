@@ -4,6 +4,25 @@ Dated entries for resuming work across sessions. Most recent entry first.
 
 ---
 
+## 2026-06-13 (evening) — 5 queued adapters built + loaded → 16 states, 28,964 firms
+
+Built, TDD-tested, and loaded the five queued confirmed_black adapters. **Public DB is now 28,964 confirmed_black businesses across 16 states + NYC** (snapshot 2026-Q2), up from 16,736 / 11 states.
+
+New adapters (all manual-capture file readers, same pattern as `or_cobid`/`nv_dbe`):
+- `va_swam` — Virginia SWaM/DBE, `Ethnicity == "Black or African American"` → **4,841**. xlsx with 3 repeated SWaM/MWAA/DBE column blocks; first-occurrence-wins reads block 1 (verified no Black firm is populated only in a later block).
+- `nc_hub` — North Carolina HUB, `HUB == "Certified"` AND `HUBCategory == "Black"` → **3,615** (of 3,988 Black-category rows; 370 blank-status + 3 not-certified excluded). Normalizes spelled-out state names → 2-letter codes (~6% of firms are out-of-state HUB certs).
+- `fl_mbe` — Florida OSD, 3 county-split xlsx files **pre-filtered** to African American + certified (no per-row ethnicity column; provenance is the export query) → **1,898** unique (2,003 rows − cross-county dups). Note: FL files carry NO zip column, so most FL firms geocode by city/state only or are table-only.
+- `ca_mbe` — California DGS MBE, `Ethnicity == "Black American"` → **959** (961 rows − 2 dup names). April-2026 snapshot from the admin-data folder (CA live directory is offline). Parses the multi-line `Primary Address` cell best-effort.
+- `ar_mwbe` — Arkansas M/WBE Registry, `VendorCategory in {"African American","African-American"}` → **915**.
+
+Each adapter docstring records the exact ethnicity field + all distinct values verbatim (QC requirement). Tests: **135 pass** (115 + 20 new). DB backed up to `data/bbrt.duckdb.bak-316a71f` (local, gitignored/untracked) before the run.
+
+**Pipeline run note:** CT and DE hit a transient Socrata **503** during the run and were **carried forward** (CT 970, DE 335 preserved — no loss). Because `write_businesses` uses `INSERT ... ON CONFLICT DO NOTHING` (no per-snapshot DELETE), a same-quarter re-run is **additive**: 6 TX firms that dropped from the source this cycle linger (4,074 vs 4,068 fetched) and existing firms keep their original geocodes. This was the *safest* path — a clean rebuild would have permanently dropped CT/DE while their APIs were 503ing. The 6 stale TX rows clear on the next clean quarterly snapshot (2026-Q3). 18,700/21,657 freshly-run records geocoded.
+
+Remaining queued adapters from the prior entry are now DONE. Next up unchanged: Mapbox go-live (token push-protection), LA/city scrapers, NMSDC (UM membership check), RA/CRM survey pipeline.
+
+---
+
 ## 2026-06-13 — Major expansion session (read this first)
 
 ### ⚠️ Environment — where everything lives now

@@ -8,3 +8,4 @@ scripts/__pycache__/
 .worktrees/
 data/manual_downloads/
 data/mbe_frame.duckdb
+*.duckdb.bak-*

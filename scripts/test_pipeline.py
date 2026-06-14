@@ -1661,3 +1661,294 @@ def test_nv_maps_physical_address_and_strips_zip_tab(tmp_path):
 
 def test_nv_confidence_is_confirmed_black():
     assert NvDbeAdapter.CONFIDENCE == "confirmed_black"
+
+
+# ── shared helpers for the 2026-06-13 file-based adapters ─────────────────────
+
+def _write_utf8(tmp_path, name, headers, rows):
+    """Write a flat CSV (header on row 0) as utf-8-sig, like the AR/CA/NC exports."""
+    import csv as _csv
+    p = tmp_path / name
+    with open(p, "w", encoding="utf-8-sig", newline="") as f:
+        w = _csv.writer(f)
+        w.writerow(headers)
+        for r in rows:
+            w.writerow(r)
+    return p
+
+
+def _write_xlsx(tmp_path, name, headers, rows, sheet="Sheet1"):
+    """Write an .xlsx with header on row 1, like the FL/VA exports."""
+    import openpyxl as _ox
+    wb = _ox.Workbook()
+    ws = wb.active
+    ws.title = sheet
+    ws.append(headers)
+    for r in rows:
+        ws.append(list(r))
+    p = tmp_path / name
+    wb.save(p)
+    return p
+
+
+# ── ar_mwbe adapter tests ─────────────────────────────────────────────────────
+
+from adapters.ar_mwbe import ArMwbeAdapter
+
+_AR_HEADERS = ["CompanyName", "BusinessDescription", "Phone", "Street", "City",
+               "StateCode", "Zip", "VendorCategory", "CertificationNumber",
+               "NaicsCode", "AasisVendorNumber", "ContactFirstName",
+               "ContactLastName", "ContactTitle", "ContactPhone", "ContactEmail",
+               "County", "BusinessDesignation", "Website", "OAN"]
+
+
+def _ar_row(name="Acme Black LLC", category="African American", street="100 Main St",
+            city="Little Rock", first="Jordan", last="Smith", email="a@b.co"):
+    return [name, "Consulting", "501-555-0100", street, city, "AR", "72201",
+            category, "", "541611", "", first, last, "Owner", "501-555-0100",
+            email, "Pulaski", "", "https://acme.co", ""]
+
+
+def test_ar_filters_both_spellings_of_african_american(tmp_path):
+    p = _write_utf8(tmp_path, "Arkansas test.csv", _AR_HEADERS, [
+        _ar_row(name="Hyphen Co", category="African-American"),
+        _ar_row(name="Space Co", category="African American"),
+        _ar_row(name="Women Co", category="Women-Owned"),
+        _ar_row(name="Hisp Co", category="Hispanic American"),
+    ])
+    names = sorted(r["business_name"] for r in ArMwbeAdapter(file_path=p).run())
+    assert names == ["Hyphen Co", "Space Co"]
+
+
+def test_ar_maps_fields_and_owner(tmp_path):
+    p = _write_utf8(tmp_path, "Arkansas test.csv", _AR_HEADERS, [
+        _ar_row(name="Black Co", street="742 D St", city="Conway",
+                first="Alex", last="Jones", email="alex@black.co"),
+    ])
+    rec = ArMwbeAdapter(file_path=p).run()[0]
+    assert rec["business_name"] == "Black Co"
+    assert rec["address_street"] == "742 D St"
+    assert rec["address_city"] == "Conway"
+    assert rec["address_state"] == "AR"
+    assert rec["owner_name"] == "Alex Jones"
+    assert rec["email"] == "alex@black.co"
+    assert rec["certification"] == "MBE"
+
+
+def test_ar_dedups_on_company_and_street(tmp_path):
+    p = _write_utf8(tmp_path, "Arkansas test.csv", _AR_HEADERS, [
+        _ar_row(name="Black Co", street="1 A St"),
+        _ar_row(name="Black Co", street="1 A St"),
+    ])
+    assert len(ArMwbeAdapter(file_path=p).run()) == 1
+
+
+def test_ar_confidence_is_confirmed_black():
+    assert ArMwbeAdapter.CONFIDENCE == "confirmed_black"
+
+
+# ── nc_hub adapter tests ──────────────────────────────────────────────────────
+
+from adapters.nc_hub import NcHubAdapter
+
+_NC_HEADERS = ["Name", "MainContactName", "MainContactEmail", "MainContactPhone",
+               "AddressLine1", "City", "State", "ZipCode", "County", "URL",
+               "HUB", "HUBCategory"]
+
+
+def _nc_row(name="Acme Black LLC", hub="Certified", category="Black",
+            street="100 Main St", city="Raleigh", contact="Jordan Smith"):
+    return [name, contact, "a@b.co", "919-555-0100", street, city, "NC",
+            "27601", "Wake", "https://acme.co", hub, category]
+
+
+def test_nc_filters_certified_black_only(tmp_path):
+    p = _write_utf8(tmp_path, "North Carolina Vendor Details test.csv", _NC_HEADERS, [
+        _nc_row(name="Good Co", hub="Certified", category="Black"),
+        _nc_row(name="Blank Hub Co", hub="", category="Black"),
+        _nc_row(name="NotCert Co", hub="Not Certified", category="Black"),
+        _nc_row(name="Hisp Co", hub="Certified", category="Hispanic"),
+    ])
+    names = [r["business_name"] for r in NcHubAdapter(file_path=p).run()]
+    assert names == ["Good Co"]
+
+
+def test_nc_maps_fields(tmp_path):
+    p = _write_utf8(tmp_path, "North Carolina Vendor Details test.csv", _NC_HEADERS, [
+        _nc_row(name="Black Co", street="9 Oak Ave", city="Durham", contact="Pat Lee"),
+    ])
+    rec = NcHubAdapter(file_path=p).run()[0]
+    assert rec["business_name"] == "Black Co"
+    assert rec["owner_name"] == "Pat Lee"
+    assert rec["address_street"] == "9 Oak Ave"
+    assert rec["address_city"] == "Durham"
+    assert rec["address_state"] == "NC"
+    assert rec["certification"] == "HUB"
+
+
+def test_nc_dedups(tmp_path):
+    p = _write_utf8(tmp_path, "North Carolina Vendor Details test.csv", _NC_HEADERS, [
+        _nc_row(name="Black Co", street="1 A St"),
+        _nc_row(name="Black Co", street="1 A St"),
+    ])
+    assert len(NcHubAdapter(file_path=p).run()) == 1
+
+
+def test_nc_confidence_is_confirmed_black():
+    assert NcHubAdapter.CONFIDENCE == "confirmed_black"
+
+
+# ── ca_mbe adapter tests ──────────────────────────────────────────────────────
+
+from adapters.ca_mbe import CaMbeAdapter
+
+_CA_HEADERS = ["Vendor Name ", "Contact", "Contact Email", "Primary Address",
+               "Active Certifications", "Ethnicity", "Gender", "Industries",
+               "Account Email", "Market Area", "Contact Phone", "Business Activity",
+               "Website"]
+
+
+def _ca_row(name="Acme Black LLC", ethnicity="Black American",
+            address="1730 N Wilton Place\n Los Angeles 90028\n CA Los Angeles\n",
+            contact="Jordan Smith", certs="MBE\nWBE"):
+    return [name, contact, "a@b.co", address, certs, ethnicity, "Female",
+            "Consulting", "acct@b.co", "Local", "(310) 555-0100", "Goods", "https://acme.co"]
+
+
+def test_ca_filters_black_american(tmp_path):
+    p = _write_utf8(tmp_path, "Black_MBE test.csv", _CA_HEADERS, [
+        _ca_row(name="Black Co", ethnicity="Black American"),
+        _ca_row(name="Hisp Co", ethnicity="Hispanic American"),
+    ])
+    names = [r["business_name"] for r in CaMbeAdapter(file_path=p).run()]
+    assert names == ["Black Co"]
+
+
+def test_ca_parses_multiline_address(tmp_path):
+    p = _write_utf8(tmp_path, "Black_MBE test.csv", _CA_HEADERS, [
+        _ca_row(name="Black Co",
+                address="1730 N Wilton Place\n Los Angeles 90028\n CA Los Angeles\n"),
+    ])
+    rec = CaMbeAdapter(file_path=p).run()[0]
+    assert rec["business_name"] == "Black Co"
+    assert rec["address_street"] == "1730 N Wilton Place"
+    assert rec["address_city"] == "Los Angeles"
+    assert rec["address_zip"] == "90028"
+    assert rec["address_state"] == "CA"
+    assert rec["owner_name"] == "Jordan Smith"
+    assert "MBE" in rec["certification"]
+
+
+def test_ca_dedups_on_vendor_name(tmp_path):
+    p = _write_utf8(tmp_path, "Black_MBE test.csv", _CA_HEADERS, [
+        _ca_row(name="Black Co"), _ca_row(name="Black Co"),
+    ])
+    assert len(CaMbeAdapter(file_path=p).run()) == 1
+
+
+def test_ca_confidence_is_confirmed_black():
+    assert CaMbeAdapter.CONFIDENCE == "confirmed_black"
+
+
+# ── fl_mbe adapter tests ──────────────────────────────────────────────────────
+
+from adapters.fl_mbe import FlMbeAdapter
+
+_FL_HEADERS = ["Vendor Name", "Contact", "Email", "Address", "City", "State",
+               "Phone Number"]
+
+
+def _fl_row(name="Acme Black LLC", contact="Jordan Smith", address="100 Main St",
+            city="Miami"):
+    return [name, contact, "a@b.co", address, city, "FL", "(305) 555-0100"]
+
+
+def test_fl_combines_files_and_keeps_all_rows(tmp_path):
+    p1 = _write_xlsx(tmp_path, "Florida A-G.xlsx", _FL_HEADERS,
+                     [_fl_row(name="Alpha Co"), _fl_row(name="Bravo Co")], sheet="Vendors")
+    p2 = _write_xlsx(tmp_path, "Florida H-M.xlsx", _FL_HEADERS,
+                     [_fl_row(name="Mike Co")], sheet="Vendors")
+    names = sorted(r["business_name"] for r in FlMbeAdapter(file_paths=[p1, p2]).run())
+    assert names == ["Alpha Co", "Bravo Co", "Mike Co"]
+
+
+def test_fl_maps_fields(tmp_path):
+    p = _write_xlsx(tmp_path, "Florida A-G.xlsx", _FL_HEADERS,
+                    [_fl_row(name="Black Co", contact="Pat Lee",
+                             address="9 Palm Ave", city="Tampa")], sheet="Vendors")
+    rec = FlMbeAdapter(file_paths=[p]).run()[0]
+    assert rec["business_name"] == "Black Co"
+    assert rec["owner_name"] == "Pat Lee"
+    assert rec["address_street"] == "9 Palm Ave"
+    assert rec["address_city"] == "Tampa"
+    assert rec["address_state"] == "FL"
+    assert rec["certification"] == "MBE"
+
+
+def test_fl_dedups_across_files(tmp_path):
+    p1 = _write_xlsx(tmp_path, "Florida A-G.xlsx", _FL_HEADERS,
+                     [_fl_row(name="Black Co", address="1 A St")], sheet="Vendors")
+    p2 = _write_xlsx(tmp_path, "Florida H-M.xlsx", _FL_HEADERS,
+                     [_fl_row(name="Black Co", address="1 A St")], sheet="Vendors")
+    assert len(FlMbeAdapter(file_paths=[p1, p2]).run()) == 1
+
+
+def test_fl_confidence_is_confirmed_black():
+    assert FlMbeAdapter.CONFIDENCE == "confirmed_black"
+
+
+# ── va_swam adapter tests ─────────────────────────────────────────────────────
+
+from adapters.va_swam import VaSwamAdapter
+
+# Two repeated blocks to exercise first-occurrence-wins (SWaM then MWAA).
+_VA_HEADERS = ["Certification Type", "Business website", "Company Name",
+               "Contact Name", "Contact Phone", "Contact Email", "Mailing Address",
+               "Mailing City", "Mailing State", "Mailing Zip", "Business Category",
+               "Ethnicity",
+               # second (MWAA) block — duplicate names, ignored by first-wins
+               "Company Name", "Mailing Zip", "Ethnicity"]
+
+
+def _va_row(name="Acme Black LLC", ethnicity="Black or African American",
+            zipc="23220", cert="Minority Owned", contact="Jordan Smith",
+            blk2_name="", blk2_zip="", blk2_eth=""):
+    return [cert, "https://acme.co", name, contact, "(804) 555-0100", "a@b.co",
+            "100 Main St", "Richmond", "VA", zipc, "Consulting", ethnicity,
+            blk2_name, blk2_zip, blk2_eth]
+
+
+def test_va_filters_black_or_african_american(tmp_path):
+    p = _write_xlsx(tmp_path, "Virginia Directory Listing Export-test.xlsx", _VA_HEADERS, [
+        _va_row(name="Black Co", ethnicity="Black or African American"),
+        _va_row(name="Asian Co", ethnicity="Asian American"),
+        _va_row(name="Blank Co", ethnicity=""),
+    ], sheet="Directory")
+    names = [r["business_name"] for r in VaSwamAdapter(file_path=p).run()]
+    assert names == ["Black Co"]
+
+
+def test_va_reads_first_block_only(tmp_path):
+    # First block has the real values; second block is junk and must be ignored.
+    p = _write_xlsx(tmp_path, "Virginia Directory Listing Export-test.xlsx", _VA_HEADERS, [
+        _va_row(name="Black Co", zipc="23220", contact="Pat Lee",
+                blk2_name="WRONG", blk2_zip="00000", blk2_eth="WRONG"),
+    ], sheet="Directory")
+    rec = VaSwamAdapter(file_path=p).run()[0]
+    assert rec["business_name"] == "Black Co"
+    assert rec["address_zip"] == "23220"
+    assert rec["owner_name"] == "Pat Lee"
+    assert rec["address_city"] == "Richmond"
+    assert rec["certification"] == "Minority Owned"
+
+
+def test_va_dedups_on_name_and_zip(tmp_path):
+    p = _write_xlsx(tmp_path, "Virginia Directory Listing Export-test.xlsx", _VA_HEADERS, [
+        _va_row(name="Black Co", zipc="23220"),
+        _va_row(name="Black Co", zipc="23220"),
+    ], sheet="Directory")
+    assert len(VaSwamAdapter(file_path=p).run()) == 1
+
+
+def test_va_confidence_is_confirmed_black():
+    assert VaSwamAdapter.CONFIDENCE == "confirmed_black"
