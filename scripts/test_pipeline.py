@@ -2115,3 +2115,64 @@ def test_b2gnow_new_tenants_confidence():
     assert ChicagoMwbeAdapter.CONFIDENCE == "confirmed_black"
     assert BaltimoreMwbooAdapter.CONFIDENCE == "confirmed_black"
     assert HawaiiDbeAdapter.CONFIDENCE == "confirmed_black"
+
+
+# ── dc_ucp adapter (custom Oracle APEX HTML, unclosed <tr>) ────────────────────
+
+from adapters.dc_ucp import DcUcpAdapter
+
+_DC_COLS = ["Cert Type", "Certificate Number", "Company Name", "Address",
+            "Contact Name", "Contact Title", "Ethnicity",
+            "Description of services", "Certification Agency"]
+
+
+def _make_dc_apex_html(rows):
+    """Header in <th> with </tr>; data rows in <td> with NO closing </tr>
+    (mirrors the real DC UCP export). Address cell packs lines with <br/>."""
+    out = ["<html><body><table border='1'>"]
+    out.append("<tr>" + "".join(f"<th>{c}</th>" for c in _DC_COLS) + "</tr>")
+    for r in rows:
+        out.append("<tr>")  # intentionally not closed
+        out.append("".join(f"<td>{c}</td>" for c in r))
+    out.append("</table></body></html>")
+    return "\n".join(out)
+
+
+def _dc_row(name="Acme Black LLC", cert="SBE", ethnicity="Black",
+            street="100 Main St", city="Washington", st="DC", zipc="20001",
+            phone="202/555-0100", email="a@b.co", contact="Jordan Smith"):
+    addr = (f"{street}<br />{city}, {st} {zipc}<br />Phone: {phone}"
+            f"<br />Fax: {phone}<br />Email: {email}<br />Website: http://")
+    return [cert, "C123", name, addr, contact, "Primary Owner", ethnicity,
+            "Consulting", "DC UCP"]
+
+
+def test_dc_ucp_parses_unclosed_rows_and_filters_black(tmp_path):
+    html = _make_dc_apex_html([
+        _dc_row(name="Black Co", ethnicity="Black"),
+        _dc_row(name="Hisp Co", ethnicity="Hispanic"),
+        _dc_row(name="Other Co", ethnicity="Other"),
+    ])
+    p = _write_latin1(tmp_path, "Washington DC UCP test.xls", html)
+    names = [r["business_name"] for r in DcUcpAdapter(file_path=p).run()]
+    assert names == ["Black Co"]
+
+
+def test_dc_ucp_parses_packed_address(tmp_path):
+    html = _make_dc_apex_html([
+        _dc_row(name="Black Co", street="54 Pyngyp Rd", city="Stony Point",
+                st="NY", zipc="10980", phone="914/656-0900", email="k@x.co"),
+    ])
+    p = _write_latin1(tmp_path, "Washington DC UCP test.xls", html)
+    rec = DcUcpAdapter(file_path=p).run()[0]
+    assert rec["address_street"] == "54 Pyngyp Rd"
+    assert rec["address_city"] == "Stony Point"
+    assert rec["address_state"] == "NY"     # based out of state — base-state coding will map it to NY
+    assert rec["address_zip"] == "10980"
+    assert rec["phone"] == "914/656-0900"
+    assert rec["email"] == "k@x.co"
+    assert rec["owner_name"] == "Jordan Smith"
+
+
+def test_dc_ucp_confidence_is_confirmed_black():
+    assert DcUcpAdapter.CONFIDENCE == "confirmed_black"

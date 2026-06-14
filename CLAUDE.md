@@ -17,7 +17,7 @@ Full original spec is in `research_table_claudecode_memo.md`. Architecture for t
 **Sub-project 1 (Pipeline Infrastructure): COMPLETE**
 **Sub-project 2 (National Expansion — State/Federal Adapters): IN PROGRESS**
 
-Database: `data/bbrt.duckdb` — 35,131 businesses across 2026-Q2 snapshot (20 states; several are city programs — NYC, Houston, Atlanta, Chicago, Baltimore), all `confirmed_black`.
+Database: `data/bbrt.duckdb` — 36,928 businesses across 2026-Q2 snapshot, 23 sources spanning 21 jurisdictions (20 states + DC; several are city programs — NYC, Houston, Atlanta, Chicago, Baltimore), all `confirmed_black`. Businesses are mapped to the state they are *based in* (geocoded address), not the certifying program's state.
 
 | Adapter | Source | Type | Count | Fetch |
 |---|---|---|---|---|
@@ -29,6 +29,7 @@ Database: `data/bbrt.duckdb` — 35,131 businesses across 2026-Q2 snapshot (20 s
 | `houston_obo` | Houston OBO MWBE | `confirmed_black` | 2,224 | manual capture (B2Gnow csv) |
 | `fl_mbe` | Florida OSD MBE (African American) | `confirmed_black` | 1,898 | manual capture (3× xlsx) |
 | `chicago_mwbe` | Chicago M/W/DBE | `confirmed_black` | 1,811 | manual capture (B2Gnow csv) |
+| `dc_ucp` | DC UCP DBE | `confirmed_black` | 1,796 | manual capture (Oracle APEX .xls/HTML) |
 | `ct_das_smbe` | Connecticut DAS | `confirmed_black` | 970 | auto (Socrata) |
 | `ca_mbe` | California DGS MBE (2026 snapshot) | `confirmed_black` | 959 | manual capture (csv) |
 | `ar_mwbe` | Arkansas M/WBE Registry | `confirmed_black` | 915 | manual capture (csv) |

@@ -4,6 +4,20 @@ Dated entries for resuming work across sessions. Most recent entry first.
 
 ---
 
+## 2026-06-14 (batch 3) — DC UCP (1,796) + base-state map coding → 23 sources, 36,928 firms
+
+- **`dc_ucp`** — DC UCP DBE, **1,796 Black firms** (Ethnicity="Black"; new jurisdiction = DC). The "DC UCP exported empty" call earlier was WRONG — the file is a custom **Oracle APEX HTML** export (not B2Gnow): single `<table>` whose data `<tr>` are NOT closed, and the Address column packs street/city/state/zip/phone/email/website across `<br/>` in one cell. `scripts/adapters/dc_ucp.py` parses it by grouping `<td>` cells into 9-col rows and splitting the address on `<br/>`. Validates base-state coding hard: DC-UCP firms are based MD 769 / DC 554 / VA 126 / GA 55 / … — almost all outside DC.
+- **Base-state map coding (Kyle's request):** `js/main.js` now maps/filters each business by the state it is *based in* (geocoded `address_state`), falling back to the program's state only when the address has no recognizable US state. New `recordState()` wraps the old `deriveSourceState()`. Dots were already at true lat/long; this fixes the state outline/filter attribution.
+- DB compaction is now a required step after same-quarter reloads (bloats; `COPY FROM DATABASE` into a fresh file → 64MB→55MB here). **Storage decision still pending** (GitHub Releases vs LFS) — see below.
+
+### Still open / discussed this session (not yet built)
+- **FAA national DBE scrape** — NOT headlessly verifiable (portal needs a session; the search page exposes no detail-page structure). GATING SPOT-CHECK still needs Kyle: open one firm on faa.dbesystem.com, click its certification type, and report whether the detail page shows an ethnicity/race/disadvantaged-group field. If yes → a scrape could recover ethnicity for the no-ethnicity DBE directories (NJ/WA/TX-DOT/ID/DE-DOT/New Orleans/Cleveland) + untouched states.
+- **DuckDB-in-git storage** — file keeps bloating toward GitHub's 100MB hard limit. Recommended fix: move the `.duckdb` out of the repo and serve it as a **GitHub Release asset** (free, 2GB/file), keep only `businesses.csv` in-repo; the site's "full panel" button links to the release. (Alternative: Git LFS, but free tier is 1GB storage + 1GB/mo bandwidth.) No paid service needed either way.
+- **Uncertified / self-identified lists** (BLM-era "best Black-owned businesses in <city>" listicles, directories like blackownedeverything.co, Instagram features): proposed a NEW confidence tier (`self_identified` / `media_identified`) kept separate from `confirmed_black`, so researchers can include/exclude. Captures consumer/retail firms that procurement directories miss. Instagram = low feasibility (API/ToS) — treat as lead source, not a scrape target. Plan not yet built; awaiting Kyle's tier-label decision.
+- **Other federal agencies:** the productive federal vein is DOT DBE (done) + SBA 8(a) (blocked on SAM system account). Most federal sources don't publish per-firm RACE (privacy); Census ABS is aggregate-only. Federal is largely tapped.
+
+---
+
 ## 2026-06-14 (batch 2) — 3 more B2Gnow tenants → 22 sources, 20 states, 35,131 firms
 
 Added `chicago_mwbe` (1,811 — Illinois NEW), `baltimore_mwboo` (661 — Maryland density), `hawaii_dbe` (11 — Hawaii NEW). DB now **35,131 confirmed_black firms, 20 states**, 22 sources. Tests 145. Site SOURCE_CITY_STATE got Chicago→Illinois, Baltimore→Maryland.

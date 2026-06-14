@@ -59,6 +59,16 @@
     return normalizeState(addressState);
   }
 
+  // Where a business is mapped/filtered: its OWN physical state (where it's based),
+  // falling back to the certifying program's state only when the business address
+  // has no recognizable US state. So a firm certified by one state's program but
+  // headquartered in another shows under the state it's actually based in.
+  function recordState(dataSource, addressState) {
+    var s = normalizeState(addressState);
+    if (s && STATE_FULL_DESC.indexOf(s) !== -1) return s;
+    return deriveSourceState(dataSource, addressState);
+  }
+
   function normalizeState(s) {
     if (!s) return '';
     s = String(s).trim();
@@ -486,7 +496,7 @@
 
         sourceCounts = {}; coveredStates = {};
         allRows.forEach(function (r) {
-          r.sourceState = deriveSourceState(r.data_source, r.address_state);
+          r.sourceState = recordState(r.data_source, r.address_state);
           if (r.sourceState) {
             sourceCounts[r.sourceState] = (sourceCounts[r.sourceState] || 0) + 1;
             coveredStates[r.sourceState] = true;
