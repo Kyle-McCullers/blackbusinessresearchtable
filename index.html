@@ -7,7 +7,7 @@
   <title>Black Business Research Table</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -63,8 +63,17 @@
   <section id="map-section">
     <div class="section-inner">
       <div class="section-label">Map</div>
-      <div id="map"></div>
-      <p class="map-caption">Click any marker for business details. Businesses without a geocoded address are in the data table below but not shown on the map.</p>
+      <div id="map">
+        <!-- Legend overlay (bottom-right, sits above the GL canvas) -->
+        <div class="map-legend">
+          <div class="legend-title">Legend</div>
+          <div class="legend-row"><span class="legend-dot" style="background:#1B4332;"></span>Confirmed Black-owned</div>
+          <div class="legend-row"><span class="legend-dot" style="background:#9a9a9a;"></span>MBE — unverified</div>
+          <div class="legend-row"><span class="legend-swatch legend-covered"></span>Source incorporated</div>
+          <div class="legend-row"><span class="legend-swatch legend-uncovered"></span>Not yet covered</div>
+        </div>
+      </div>
+      <p class="map-caption">Click any dot for business details. Click a covered state to filter. Businesses without a geocoded address appear in the data table below but not on the map.</p>
     </div>
   </section>
 
@@ -150,7 +159,7 @@
 
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <script src="js/main.js"></script>
 </body>
