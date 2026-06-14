@@ -110,7 +110,7 @@ blackbusinessresearchtable/
 ├── css/style.css
 ├── js/main.js
 ├── data/
-│   ├── bbrt.duckdb                     ← research panel database (tracked via Git LFS when large)
+│   ├── bbrt.duckdb                     ← research panel DB (gitignored; distributed via GitHub Releases — /releases/latest/download/bbrt.duckdb)
 │   ├── businesses.csv                  ← current snapshot exported for the public site
 │   └── snapshots/
 │       └── YYYY-QN-summary.txt

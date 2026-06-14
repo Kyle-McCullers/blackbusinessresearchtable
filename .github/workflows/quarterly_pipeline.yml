@@ -29,6 +29,15 @@ jobs:
       - name: Install dependencies
         run: pip install -r scripts/requirements.txt
 
+      - name: Fetch latest research panel DB from Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The DB is distributed via GitHub Releases (not committed — it's a large
+          # growing binary). Pull the latest so the pipeline can append this quarter's
+          # snapshot and carry sources forward. First-ever run starts fresh.
+          gh release download --pattern bbrt.duckdb --dir data --clobber || echo "No prior release DB; starting fresh."
+
       - name: Run pipeline
         working-directory: scripts
         env:
@@ -41,10 +50,23 @@ jobs:
             python -m pipeline.run
           fi
 
-      - name: Commit and push updated data
+      - name: Publish research panel DB to a GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Distribute the (large, growing) DuckDB via Releases instead of git.
+          # A new dated release each run keeps citable per-snapshot download points;
+          # the site links to /releases/latest/download/bbrt.duckdb (auto-resolves to newest).
+          TAG="data-$(date +%Y-%m-%d)"
+          gh release create "$TAG" data/bbrt.duckdb \
+            --title "BBRT research panel — $TAG" \
+            --notes "Automated quarterly snapshot." --latest \
+          || gh release upload "$TAG" data/bbrt.duckdb --clobber
+
+      - name: Commit and push updated CSV + summary
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/businesses.csv data/bbrt.duckdb data/snapshots/
+          git add data/businesses.csv data/snapshots/
           git diff --staged --quiet || git commit -m "chore: quarterly pipeline update"
           git push
