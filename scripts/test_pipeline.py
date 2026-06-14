@@ -1952,3 +1952,140 @@ def test_va_dedups_on_name_and_zip(tmp_path):
 
 def test_va_confidence_is_confirmed_black():
     assert VaSwamAdapter.CONFIDENCE == "confirmed_black"
+
+
+# ── B2Gnow family adapters (houston_obo, pa_ucp_dbe, atlanta_aabe) ────────────
+
+from adapters.houston_obo import HoustonOboAdapter
+from adapters.pa_ucp_dbe import PaUcpDbeAdapter
+from adapters.atlanta_aabe import AtlantaAabeAdapter
+
+# gob2g CSV header with the duplicate physical/mailing City/State/Zip columns.
+_B2_HEADERS = ["Company Name", "DBA Name", "Owner First", "Owner Last",
+               "Physical Address", "City", "State", "Zip",
+               "Mailing Address", "City", "State", "Zip", "Phone", "Fax",
+               "Email", "Website", "Agency", "Certification Type", "Ethnicity",
+               "Gender", "Capability", "Category", "Commodity Codes"]
+
+
+def _b2_row(name="Acme Black LLC", first="Jordan", last="Smith", paddr="100 Main St",
+            city="Houston", state="TX", zipc="\t77033", phone="713-555-0100",
+            email="a@b.co", cert="MBE", ethnicity="Black", cap="Consulting"):
+    return [name, "", first, last, paddr, city, state, zipc,
+            paddr, city, state, zipc, phone, "", email, "https://acme.co",
+            "City", cert, ethnicity, "Male", cap, "Services", "541611"]
+
+
+def test_b2gnow_csv_filters_black_and_black_american(tmp_path):
+    text = _make_dir_csv("Certified Directory", _B2_HEADERS, [
+        _b2_row(name="Black Co", ethnicity="Black"),
+        _b2_row(name="Black Am Co", ethnicity="Black American"),
+        _b2_row(name="Cauc Co", ethnicity="Caucasian"),
+        _b2_row(name="Asian Co", ethnicity="Asian"),
+    ])
+    p = _write_latin1(tmp_path, "Houston test Directory.csv", text)
+    names = sorted(r["business_name"] for r in HoustonOboAdapter(file_path=p).run())
+    assert names == ["Black Am Co", "Black Co"]
+
+
+def test_b2gnow_csv_maps_fields_strips_zip_tab_and_owner(tmp_path):
+    text = _make_dir_csv("Certified Directory", _B2_HEADERS, [
+        _b2_row(name="Black Co", first="Pat", last="Lee", paddr="9 Oak Ave",
+                city="Houston", state="TX", zipc="\t77002", email="pat@black.co"),
+    ])
+    p = _write_latin1(tmp_path, "Houston test Directory.csv", text)
+    rec = HoustonOboAdapter(file_path=p).run()[0]
+    assert rec["business_name"] == "Black Co"
+    assert rec["address_street"] == "9 Oak Ave"
+    assert rec["address_city"] == "Houston"
+    assert rec["address_state"] == "TX"
+    assert rec["address_zip"] == "77002"      # leading tab stripped by map_record
+    assert rec["owner_name"] == "Pat Lee"
+    assert rec["email"] == "pat@black.co"
+
+
+def test_b2gnow_csv_dedups_on_company_and_physical_address(tmp_path):
+    text = _make_dir_csv("Certified Directory", _B2_HEADERS, [
+        _b2_row(name="Black Co", paddr="1 A St", ethnicity="Black"),
+        _b2_row(name="Black Co", paddr="1 A St", ethnicity="Black"),  # same firm, another commodity
+    ])
+    p = _write_latin1(tmp_path, "Houston test Directory.csv", text)
+    assert len(HoustonOboAdapter(file_path=p).run()) == 1
+
+
+def test_pa_ucp_filters_black_american(tmp_path):
+    text = _make_dir_csv("Certified Directory", _B2_HEADERS, [
+        _b2_row(name="PA Black Co", state="PA", zipc="\t19103", ethnicity="Black American"),
+        _b2_row(name="PA Cauc Co", state="PA", zipc="\t19103", ethnicity="Caucasian"),
+    ])
+    p = _write_latin1(tmp_path, "Pennsylvania test Directory.csv", text)
+    recs = PaUcpDbeAdapter(file_path=p).run()
+    assert [r["business_name"] for r in recs] == ["PA Black Co"]
+    assert recs[0]["certification"]  # cert type carried through
+
+
+def test_b2gnow_confidence_is_confirmed_black():
+    assert HoustonOboAdapter.CONFIDENCE == "confirmed_black"
+    assert PaUcpDbeAdapter.CONFIDENCE == "confirmed_black"
+    assert AtlantaAabeAdapter.CONFIDENCE == "confirmed_black"
+
+
+# Atlanta — B2Gnow ".xls" that is actually an HTML <table>.
+_ATL_HEADERS = ["Company Name", "DBA Name", "Owner First", "Owner Last", "Location",
+                "Phone", "Fax", "Email", "Website", "Agency", "Certification Type",
+                "Expiration", "Capability", "Market Area", "Supplier ID#",
+                "Commodity Codes"]
+
+
+def _make_b2gnow_html(headers, rows):
+    def tr(cells):
+        return "<tr>" + "".join(f"<td>{c}</td>" for c in cells) + "</tr>\n"
+    body = "<strong>Certified Directory</strong><br/>\nAs of 6/14/2026<br/>\n"
+    body += "<table border='1'>\n" + tr(headers)
+    for r in rows:
+        body += tr(r)
+    body += "</table>"
+    return body
+
+
+def _atl_row(name="Acme Black LLC", first="Jordan", last="Smith",
+             location="Atlanta, GA", phone="404-555-0100", email="a@b.co",
+             cert="AABE", cap="Electrical"):
+    return [name, "", first, last, location, phone, "404-555-0101", email,
+            "https://acme.co", "Atlanta", cert, "3/11/2029", cap, "", "1303394",
+            "238210 - Electrical"]
+
+
+def test_atlanta_filters_aabe_only(tmp_path):
+    html = _make_b2gnow_html(_ATL_HEADERS, [
+        _atl_row(name="AABE Co", cert="AABE"),
+        _atl_row(name="SBE Co", cert="SBE"),
+        _atl_row(name="FBE Co", cert="FBE"),
+    ])
+    p = _write_latin1(tmp_path, "Atlanta test Directory.xls", html)
+    names = [r["business_name"] for r in AtlantaAabeAdapter(file_path=p).run()]
+    assert names == ["AABE Co"]
+
+
+def test_atlanta_parses_location_and_fields(tmp_path):
+    html = _make_b2gnow_html(_ATL_HEADERS, [
+        _atl_row(name="Black Co", first="Pat", last="Lee", location="Decatur, GA",
+                 email="pat@black.co", cert="AABE"),
+    ])
+    p = _write_latin1(tmp_path, "Atlanta test Directory.xls", html)
+    rec = AtlantaAabeAdapter(file_path=p).run()[0]
+    assert rec["business_name"] == "Black Co"
+    assert rec["address_city"] == "Decatur"
+    assert rec["address_state"] == "GA"
+    assert rec["owner_name"] == "Pat Lee"
+    assert rec["email"] == "pat@black.co"
+    assert rec["certification"] == "AABE"
+
+
+def test_atlanta_dedups_on_company_and_location(tmp_path):
+    html = _make_b2gnow_html(_ATL_HEADERS, [
+        _atl_row(name="Black Co", location="Atlanta, GA"),
+        _atl_row(name="Black Co", location="Atlanta, GA"),
+    ])
+    p = _write_latin1(tmp_path, "Atlanta test Directory.xls", html)
+    assert len(AtlantaAabeAdapter(file_path=p).run()) == 1

@@ -17,7 +17,7 @@ Full original spec is in `research_table_claudecode_memo.md`. Architecture for t
 **Sub-project 1 (Pipeline Infrastructure): COMPLETE**
 **Sub-project 2 (National Expansion — State/Federal Adapters): IN PROGRESS**
 
-Database: `data/bbrt.duckdb` — 28,964 businesses across 2026-Q2 snapshot (16 states + NYC), all `confirmed_black`.
+Database: `data/bbrt.duckdb` — 32,647 businesses across 2026-Q2 snapshot (18 states + NYC), all `confirmed_black`.
 
 | Adapter | Source | Type | Count | Fetch |
 |---|---|---|---|---|
@@ -26,18 +26,30 @@ Database: `data/bbrt.duckdb` — 28,964 businesses across 2026-Q2 snapshot (16 s
 | `tx_hub` | Texas HUB | `confirmed_black` | 4,074 | auto (CSV URL) |
 | `nyc_mwbe` | NYC MWBE | `confirmed_black` | 3,775 | file (manual) |
 | `nc_hub` | North Carolina HUB | `confirmed_black` | 3,615 | manual capture (csv) |
+| `houston_obo` | Houston OBO MWBE | `confirmed_black` | 2,224 | manual capture (B2Gnow csv) |
 | `fl_mbe` | Florida OSD MBE (African American) | `confirmed_black` | 1,898 | manual capture (3× xlsx) |
 | `ct_das_smbe` | Connecticut DAS | `confirmed_black` | 970 | auto (Socrata) |
 | `ca_mbe` | California DGS MBE (2026 snapshot) | `confirmed_black` | 959 | manual capture (csv) |
 | `ar_mwbe` | Arkansas M/WBE Registry | `confirmed_black` | 915 | manual capture (csv) |
+| `atlanta_aabe` | Atlanta OCC (AABE) | `confirmed_black` | 866 | manual capture (B2Gnow .xls/HTML) |
 | `in_idoa` | Indiana IDOA | `confirmed_black` | 627 | file (manual) |
 | `ma_sdo` | Massachusetts SDO | `confirmed_black` | 593 | file (manual) |
+| `pa_ucp_dbe` | Pennsylvania UCP DBE | `confirmed_black` | 592 | manual capture (B2Gnow csv) |
 | `sc_smbcc` | South Carolina SMBCC | `confirmed_black` | 458 | auto (xlsx URL) |
 | `de_osd` | Delaware OSD | `confirmed_black` | 335 | auto (Socrata) |
 | `or_cobid` | Oregon COBID | `confirmed_black` | 285 | manual capture |
 | `nv_dbe` | Nevada NDOT DBE | `confirmed_black` | 113 | manual capture |
 | `al_ombe` | Alabama OMBE | `confirmed_black` | 103 | file (manual) |
 | `sam_8a` | SAM.gov 8(a) | `mbe_unverified` | (not in DB — SAM.gov entity API returns 404 with a data.gov key; needs a SAM.gov system account) |
+
+`houston_obo`, `atlanta_aabe`, `pa_ucp_dbe` are the first of the **B2Gnow adapter
+family** (`scripts/pipeline/b2gnow_base.py`) — state DOT DBE + city MWBE
+directories on the dbesystem.com / mwdbe.com / diversitycompliance.com platform.
+They share one parser (CSV or HTML-`.xls`) and filter on `Ethnicity` in {Black,
+Black American} or a Black-specific cert code (Atlanta `AABE`). Adding another
+B2Gnow tenant = a ~15-line subclass. See `docs/data-sources/dbe-b2gnow-sources.md`
+for the verified inventory of remaining tenants (Chicago, Baltimore, Cleveland,
+CO, NJ, WA, ID, …).
 
 Manual-capture sources (`va_swam`, `nc_hub`, `fl_mbe`, `ca_mbe`, `ar_mwbe`,
 `or_cobid`, `nv_dbe`) read CSV/xlsx exports Kyle downloads to the Dropbox

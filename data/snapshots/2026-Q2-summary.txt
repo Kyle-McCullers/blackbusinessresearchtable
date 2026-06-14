@@ -1,9 +1,9 @@
 BBRT Quarterly Pipeline — 2026-Q2
-Run date: 2026-06-13
+Run date: 2026-06-14
 
-Records in snapshot: 28958
+Records in snapshot: 32640
 Records dropped from prior snapshot: 0
 
-Sources run (12): al_ombe, ar_mwbe, ca_mbe, fl_mbe, in_idoa, nc_hub, nv_dbe, nyc_mwbe, or_cobid, sc_smbcc, tx_hub, va_swam
-Sources failed (2): ct_das_smbe, de_osd
-Sources carried forward (4): ct_das_smbe, de_osd, ma_sdo, md_mbe
+Sources run (17): al_ombe, ar_mwbe, atlanta_aabe, ca_mbe, ct_das_smbe, de_osd, fl_mbe, houston_obo, in_idoa, nc_hub, nv_dbe, nyc_mwbe, or_cobid, pa_ucp_dbe, sc_smbcc, tx_hub, va_swam
+Sources failed (0): none
+Sources carried forward (2): ma_sdo, md_mbe

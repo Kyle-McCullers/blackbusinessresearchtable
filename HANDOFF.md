@@ -4,6 +4,22 @@ Dated entries for resuming work across sessions. Most recent entry first.
 
 ---
 
+## 2026-06-14 (cont.) — B2Gnow adapter family → 19 sources, 18 states, 32,647 firms
+
+Built the first 3 of a **B2Gnow adapter family** and loaded them. DB now **32,647 confirmed_black firms, 18 states + NYC** (added Georgia + Pennsylvania; Houston adds Texas density).
+
+- `houston_obo` — Houston OBO MWBE, Ethnicity in {Black, Black American} → 2,224 firms (5,527 rows deduped).
+- `pa_ucp_dbe` — Pennsylvania UCP DBE, Ethnicity = "Black American" → 592.
+- `atlanta_aabe` — Atlanta OCC, Certification Type = "AABE" (no ethnicity column) → 866. Its `.xls` export is actually HTML — parsed by the shared base.
+
+**Shared base: `scripts/pipeline/b2gnow_base.py`** (NOT in adapters/, so auto-discovery doesn't instantiate it). Handles both gob2g CSV (latin-1, preamble, dup City/State/Zip cols) and HTML-`.xls` (stdlib HTMLParser, no new dep); filters on an Ethnicity column or a Black cert code; dedups; maps fields. Adding another B2Gnow tenant = a ~15-line subclass setting SOURCE_ID/glob/filter/FIELD_MAP. Tests: **143 pass** (135 + 8). Site `js/main.js` SOURCE_CITY_STATE got Houston→Texas, Atlanta→Georgia (so the coverage map attributes city sources correctly).
+
+**The vein:** most remaining public Black-tagged directories are B2Gnow (manual Excel export — NOT auto-fetchable). Verified inventory of next tenants in `docs/data-sources/dbe-b2gnow-sources.md`: Chicago, Baltimore (`baltimorecity.diversitycompliance.com`), Cleveland, CO/NJ/WA/ID state DBE, GA/TX/DC DOT DBE, FAA national. Workflow: Kyle exports the directory (filter Ethnicity=Black American → Download Results to Excel) to the manual-downloads folder; each new tenant is a quick subclass. **One manual export per NEW domain confirms the ethnicity column survives** — already confirmed for all 3 domains (csv on mwdbe/dbesystem, HTML on diversitycompliance).
+
+**Policy recorded (DECISIONS.md):** NMSDC = members-only/licensed → never on the public site (private enrichment only). BBRT tracks businesses not cert legal status → DBE directories with an explicit Black field ARE captured despite the 2025 USDOT DBE rule flux (dated snapshots).
+
+---
+
 ## 2026-06-14 — Mapbox GL is LIVE on main
 
 Migrated the site map from Leaflet to **Mapbox GL JS (Light v11)** and shipped it to production (commit `0168121`). The three front-end files (`index.html`, `js/main.js`, `css/style.css`) were lifted from the old `feature/mapbox-gl` branch onto current `main` (the branch was stale — pre-dated the 5-adapter / 28,964-firm load — so it was NOT merged wholesale; only the 3 map files were applied, then the stale branch was deleted).

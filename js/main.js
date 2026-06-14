@@ -38,7 +38,11 @@
   var STATE_FULL_DESC = Object.keys(STATE_NAMES).map(function (k) { return STATE_NAMES[k]; })
     .sort(function (a, b) { return b.length - a.length; });
   // City/other sources whose data_source string doesn't contain a state name.
-  var SOURCE_CITY_STATE = [{ key: 'NYC', state: 'New York' }];
+  var SOURCE_CITY_STATE = [
+    { key: 'NYC', state: 'New York' },
+    { key: 'Houston', state: 'Texas' },
+    { key: 'Atlanta', state: 'Georgia' }
+  ];
 
   // Which state's *program* a record comes from (for the coverage map + filter),
   // derived from its data_source label. Falls back to the business address state.
