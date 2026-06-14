@@ -17,7 +17,7 @@ Full original spec is in `research_table_claudecode_memo.md`. Architecture for t
 **Sub-project 1 (Pipeline Infrastructure): COMPLETE**
 **Sub-project 2 (National Expansion — State/Federal Adapters): IN PROGRESS**
 
-Database: `data/bbrt.duckdb` — 32,647 businesses across 2026-Q2 snapshot (18 states + NYC), all `confirmed_black`.
+Database: `data/bbrt.duckdb` — 35,131 businesses across 2026-Q2 snapshot (20 states; several are city programs — NYC, Houston, Atlanta, Chicago, Baltimore), all `confirmed_black`.
 
 | Adapter | Source | Type | Count | Fetch |
 |---|---|---|---|---|
@@ -28,10 +28,12 @@ Database: `data/bbrt.duckdb` — 32,647 businesses across 2026-Q2 snapshot (18 s
 | `nc_hub` | North Carolina HUB | `confirmed_black` | 3,615 | manual capture (csv) |
 | `houston_obo` | Houston OBO MWBE | `confirmed_black` | 2,224 | manual capture (B2Gnow csv) |
 | `fl_mbe` | Florida OSD MBE (African American) | `confirmed_black` | 1,898 | manual capture (3× xlsx) |
+| `chicago_mwbe` | Chicago M/W/DBE | `confirmed_black` | 1,811 | manual capture (B2Gnow csv) |
 | `ct_das_smbe` | Connecticut DAS | `confirmed_black` | 970 | auto (Socrata) |
 | `ca_mbe` | California DGS MBE (2026 snapshot) | `confirmed_black` | 959 | manual capture (csv) |
 | `ar_mwbe` | Arkansas M/WBE Registry | `confirmed_black` | 915 | manual capture (csv) |
 | `atlanta_aabe` | Atlanta OCC (AABE) | `confirmed_black` | 866 | manual capture (B2Gnow .xls/HTML) |
+| `baltimore_mwboo` | Baltimore MWBOO | `confirmed_black` | 661 | manual capture (B2Gnow .xls/HTML) |
 | `in_idoa` | Indiana IDOA | `confirmed_black` | 627 | file (manual) |
 | `ma_sdo` | Massachusetts SDO | `confirmed_black` | 593 | file (manual) |
 | `pa_ucp_dbe` | Pennsylvania UCP DBE | `confirmed_black` | 592 | manual capture (B2Gnow csv) |
@@ -40,7 +42,10 @@ Database: `data/bbrt.duckdb` — 32,647 businesses across 2026-Q2 snapshot (18 s
 | `or_cobid` | Oregon COBID | `confirmed_black` | 285 | manual capture |
 | `nv_dbe` | Nevada NDOT DBE | `confirmed_black` | 113 | manual capture |
 | `al_ombe` | Alabama OMBE | `confirmed_black` | 103 | file (manual) |
+| `hawaii_dbe` | Hawaii DOT DBE | `confirmed_black` | 11 | manual capture (B2Gnow csv) |
 | `sam_8a` | SAM.gov 8(a) | `mbe_unverified` | (not in DB — SAM.gov entity API returns 404 with a data.gov key; needs a SAM.gov system account) |
+
+**B2Gnow per-tenant note:** the platform's ethnicity *search filter* does NOT always survive into the *export*. Confirmed to expose an Ethnicity column: Houston, Chicago, Baltimore, Hawaii, Pennsylvania (+ Atlanta via the Black-specific `AABE` cert code). Confirmed to NOT expose ethnicity (so NOT loaded, per the confirmed_black-only policy): Cleveland, Delaware DOT, Idaho, New Jersey, New Orleans, Texas DOT, Washington state, DC DDOT. These DBE/SBE/MBE directories would need a per-firm detail-page scrape (see the FAA national-directory question) to recover ethnicity.
 
 `houston_obo`, `atlanta_aabe`, `pa_ucp_dbe` are the first of the **B2Gnow adapter
 family** (`scripts/pipeline/b2gnow_base.py`) — state DOT DBE + city MWBE

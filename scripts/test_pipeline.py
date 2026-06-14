@@ -2089,3 +2089,29 @@ def test_atlanta_dedups_on_company_and_location(tmp_path):
     ])
     p = _write_latin1(tmp_path, "Atlanta test Directory.xls", html)
     assert len(AtlantaAabeAdapter(file_path=p).run()) == 1
+
+
+# ── B2Gnow new tenants (chicago_mwbe, baltimore_mwboo, hawaii_dbe) ─────────────
+
+from adapters.chicago_mwbe import ChicagoMwbeAdapter
+from adapters.baltimore_mwboo import BaltimoreMwbooAdapter
+from adapters.hawaii_dbe import HawaiiDbeAdapter
+
+
+def test_chicago_filters_both_black_labels(tmp_path):
+    # Chicago uses two distinct Black ethnicity labels; both must pass, others fail.
+    text = _make_dir_csv("Certified Directory", _B2_HEADERS, [
+        _b2_row(name="AA Co", state="IL", zipc="\t60601", ethnicity="African American"),
+        _b2_row(name="AAB Co", state="IL", zipc="\t60602", ethnicity="African-American (Black)"),
+        _b2_row(name="Latino Co", state="IL", zipc="\t60603", ethnicity="Hispanic/Latino"),
+        _b2_row(name="Cauc Co", state="IL", zipc="\t60604", ethnicity="Caucasian"),
+    ])
+    p = _write_latin1(tmp_path, "Chicago test Directory.csv", text)
+    names = sorted(r["business_name"] for r in ChicagoMwbeAdapter(file_path=p).run())
+    assert names == ["AA Co", "AAB Co"]
+
+
+def test_b2gnow_new_tenants_confidence():
+    assert ChicagoMwbeAdapter.CONFIDENCE == "confirmed_black"
+    assert BaltimoreMwbooAdapter.CONFIDENCE == "confirmed_black"
+    assert HawaiiDbeAdapter.CONFIDENCE == "confirmed_black"

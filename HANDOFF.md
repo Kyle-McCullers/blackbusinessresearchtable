@@ -4,6 +4,18 @@ Dated entries for resuming work across sessions. Most recent entry first.
 
 ---
 
+## 2026-06-14 (batch 2) — 3 more B2Gnow tenants → 22 sources, 20 states, 35,131 firms
+
+Added `chicago_mwbe` (1,811 — Illinois NEW), `baltimore_mwboo` (661 — Maryland density), `hawaii_dbe` (11 — Hawaii NEW). DB now **35,131 confirmed_black firms, 20 states**, 22 sources. Tests 145. Site SOURCE_CITY_STATE got Chicago→Illinois, Baltimore→Maryland.
+
+**KEY LEARNING — B2Gnow ethnicity is per-tenant, not guaranteed.** The platform's ethnicity *search filter* does NOT always survive into the Excel/HTML *export*. From Kyle's full B2Gnow download pass (2026-06-14):
+- EXPOSES ethnicity (built): Houston, Chicago, Baltimore, Hawaii, Pennsylvania; Atlanta via Black-specific cert code `AABE`.
+- Does NOT expose ethnicity (downloaded but NOT loaded — fails confirmed_black-only): **Cleveland (OH), Delaware DOT, Idaho, New Jersey, New Orleans (LA), Texas DOT, Washington state, DC DDOT.** Files are in the manual-downloads folder labeled "(no ethnicities to select)"; their exports carry only DBE/SBE/MBE cert types, no Black breakdown, no AABE-style code. Colorado was offline; DC UCP exported empty; Chicago-Transit/FAA have no download button.
+
+**OPEN LEAD — FAA national DBE directory as a scrape (Kyle's question).** `faa.dbesystem.com` lists **41,039 firms / 72,156 certifications** but the LIST page has no ethnicity (DBE ≠ Black; includes women + other groups), so it's unusable as-is. IF the per-firm detail page ("click the certification type") exposes the disadvantaged-group/ethnicity, scraping it could recover ethnicity for ALL the no-ethnicity DBE directories above at once (NJ, WA, TX-DOT, ID, DE-DOT, New Orleans, Cleveland, …) plus states never touched. Not yet verified — needs a spot-check of one detail page (session/POST, likely needs requests-with-cookies or Playwright). This is the single highest-leverage unbuilt source if detail pages carry race. Same pattern as the LA City scraper lead.
+
+---
+
 ## 2026-06-14 (cont.) — B2Gnow adapter family → 19 sources, 18 states, 32,647 firms
 
 Built the first 3 of a **B2Gnow adapter family** and loaded them. DB now **32,647 confirmed_black firms, 18 states + NYC** (added Georgia + Pennsylvania; Houston adds Texas density).

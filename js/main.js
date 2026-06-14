@@ -41,7 +41,9 @@
   var SOURCE_CITY_STATE = [
     { key: 'NYC', state: 'New York' },
     { key: 'Houston', state: 'Texas' },
-    { key: 'Atlanta', state: 'Georgia' }
+    { key: 'Atlanta', state: 'Georgia' },
+    { key: 'Chicago', state: 'Illinois' },
+    { key: 'Baltimore', state: 'Maryland' }
   ];
 
   // Which state's *program* a record comes from (for the coverage map + filter),
