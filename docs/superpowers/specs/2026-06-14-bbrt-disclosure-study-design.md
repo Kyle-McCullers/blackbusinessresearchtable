@@ -117,9 +117,12 @@ coding. We use (a) primary, (b) validation.
 - **Metadata fields:** `name`, `address`, **`gmap_id`**, `latitude`, `longitude`, `category`,
   `avg_rating`, `num_of_reviews`, `price`, `hours`, **`MISC`** (attribute dict — incl. identity
   "Highlights"), `url`, `relative_results`, `state`.
-- **Disclosure signal** = a Black-owned highlight string inside `MISC` (e.g. "Identifies as
-  Black-owned"). **ACQUISITION TODO:** confirm the exact `MISC` key + value; reproduce Justin
-  Frake's ~14k count as a validation check.
+- **Disclosure signal — CONFIRMED (2026-06-15):** in `MISC`, key **`'From the business'`**
+  contains value **`'Identifies as Black-owned'`**. Verified against Justin's full-dump CSV
+  (`AllGooglePlaces_Raw_3.31.2023.csv`, 3.15 GB, 4,989,845 rows, no header): exactly **14,532**
+  rows carry the tag — the validation target. Intersectional tags share the key
+  (`'Identifies as women-owned'`, `'Identifies as veteran-owned'`, `'Identifies as LGBTQ+ owned'`;
+  do NOT confuse with the unrelated "LGBTQ+ friendly" welcoming attribute).
 - **Provenance (decided):** re-acquire **all US states** directly from the UCSD repository and
   extract **all** businesses that identify as Black-owned, with a versioned extraction script
   + data statement. Justin's CSV is the interim input and cross-check target. Cite the UCSD

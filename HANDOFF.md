@@ -24,10 +24,15 @@ session. It is intentionally over-detailed. The design is **approved** — build
   - **Dual-basis display/filter guarantee** (§4.3): a firm that is certified AND self-identified must show both and **must still appear when filtering `is_certified=true`**. Never collapse bases to one mutually-exclusive label for filtering. Use `is_certified` (not the derived `identification`) as the certified filter.
   - **Public vs PRIVATE split** (§1.1, §5): disclosure DV, intersectional identity flags, and contact PII are PRIVATE — excluded from the public CSV export and the public site.
 
-### 2. Files/inputs to locate at the start
-- **Justin Frake's Google extract CSV** — in Kyle's **dissertation directory** (exact path NOT yet known; ASK KYLE or search `~/University of Michigan Dropbox/.../Dissertation*`). It's the interim input + the cross-check target (reproduce its **~14,000** Black-owned count).
-- **UCSD source** (to own the acquisition): Google Local Review Data 2021, https://jiachengli1995.github.io/google/index.html#complete-data — per-state **gzipped JSON, one record/line**, business METADATA files. Fields: name, address, **gmap_id**, latitude, longitude, category, **MISC** (attr dict), url, etc.
-- **CONFIRM the exact `MISC` key + value string** that carries the Black-owned attribute (e.g. a "Highlights"/"From the business" key containing "Identifies as Black-owned"). Do this on ONE state file first before scaling.
+### 2. Files/inputs — LOCATED & CHARACTERIZED (2026-06-15)
+- **Justin Frake's Google file (PRIMARY INPUT):**
+  `/Users/km-home/University of Michigan Dropbox/Kyle McCullers/Projects and Proposals/2 - Strategic Identity Disclosure/Second Year Paper/Data Files/AllGooglePlaces_Raw_3.31.2023.csv`
+  — it is the **FULL UCSD Google Local 2021 metadata dump as CSV**: **3.15 GB, 4,989,845 rows, NO HEADER**. So you can start matching immediately — no re-download needed to begin.
+- **Column order (0-based, no header):** 0 name · 1 address · 2 **gmap_id** · 3 description · 4 **latitude** · 5 **longitude** · 6 category · 7 avg_rating · 8 **MISC** (Python-dict-literal string) · 9 num_of_reviews · 10 price · 11 hours · 12 status · 13 url · (14+ relative_results). Parse MISC with `ast.literal_eval` (single-quoted dict), guard for blanks/malformed.
+- **Black-owned filter — CONFIRMED:** MISC key **`'From the business'`** contains value **`'Identifies as Black-owned'`**. Exact-count in this file = **14,532** rows (matches Justin's ~14k → validation target). Filter on that precise string.
+- **Intersectional identities (same `'From the business'` key, PRIVATE):** `'Identifies as women-owned'`, `'Identifies as veteran-owned'`, `'Identifies as LGBTQ+ owned'`. ⚠️ Match the full `"Identifies as …-owned"` string — a bare "LGBTQ" grep hit 197k because of the unrelated **"LGBTQ+ friendly"** welcoming attribute (NOT ownership). Confirm exact casing per identity before counting.
+- **`address` (col 1)** is a single combined string ("Name, Street, City, ST ZIP") — parse city/state/zip out for matching, but lat/long (cols 4/5) are the more reliable match keys.
+- **UCSD source (provenance GOAL, not a blocker):** https://jiachengli1995.github.io/google/index.html#complete-data — per-state gzipped JSON. Kyle wants to "own the full acquisition cycle" by reproducing the extract from this source; do that as a documented step, but the CSV above is sufficient to build/validate first.
 
 ### 3. Phase-2 build steps (suggested order)
 
