@@ -135,6 +135,15 @@ against existing rows (reuse the entity resolver). On match:
 - **Not in BBRT and not certified:** **add** as `is_self_identified = true`, source = "Google
   Maps Black-owned attribute (UCSD Google Local 2021)".
 
+**Display & filtering guarantee (required):** the bases are additive and independently
+queryable — they are never collapsed to a single mutually-exclusive label for display or
+search. A firm that is both certified and self-identified **must show both badges** and
+**must still appear in a "certified-only" view** (filter `is_certified = true`, which is
+independent of `is_self_identified`). This protects the use case of a researcher who wants to
+work with the government-certified subset only: adding the Google self-identified flag never
+removes a firm from the certified set. The derived `identification` primary label exists only
+for convenience/sorting and must NOT be used as the certified filter (use `is_certified`).
+
 ⚠️ **Circularity guardrail (critical for the dissertation):** the Google tag serves *double
 duty* — it both (a) **adds** self-identified businesses and (b) **is** the disclosure signal.
 A business added *because* it had the tag trivially "discloses," so a disclosure rate computed
