@@ -4,6 +4,67 @@ Dated entries for resuming work across sessions. Most recent entry first.
 
 ---
 
+## 2026-06-15 — ▶ PHASE 2 KICKOFF (disclosure study) — READ THIS FIRST, START HERE
+
+This is a cold-start brief for building **Phase 2** of the disclosure study in a fresh
+session. It is intentionally over-detailed. The design is **approved** — build to the spec.
+
+### 0. Orientation / environment (verify before doing anything)
+- **Repo:** `~/Projects/blackbusinessresearchtable` (NOT the stale `~/Desktop` copy). Branch `main`.
+- **Python:** `~/.bbrt-venv/bin/python` (deps: duckdb, openpyxl, requests, rapidfuzz, pytest; NOT pandas/yaml/bs4 — install if a step needs them, and add to `scripts/requirements.txt`).
+- **Tests:** `cd scripts && ~/.bbrt-venv/bin/python -m pytest test_pipeline.py -q` → 148 passing now. Keep them green; add tests for everything new (this codebase is TDD).
+- **DB:** `data/bbrt.duckdb` is **gitignored**, distributed via **GitHub Release `data-2026-Q2`** (asset `bbrt.duckdb`). It is NOT in the repo tree — if absent locally, `gh release download data-2026-Q2 --pattern bbrt.duckdb --dir data`. After a local load, **compact then re-upload**: compact via `COPY FROM DATABASE` into a fresh file (see batch-3 entry / the `gh release upload data-2026-Q2 data/bbrt.duckdb --clobber` step). The 100MB git limit is why it's on Releases — never `git add` the .duckdb.
+- **Current data:** 36,928 businesses, 23 sources, 21 jurisdictions (20 states + DC), ALL currently `confidence='confirmed_black'`. Site live on Mapbox; businesses mapped to their base (address) state via `recordState()` in `js/main.js`.
+- **gh CLI** is authenticated as Kyle-McCullers.
+
+### 1. The approved design (build to this)
+- **Spec:** `docs/superpowers/specs/2026-06-14-bbrt-disclosure-study-design.md` (APPROVED 2026-06-15). **Codebook:** `docs/codebook.md` (skeleton — fill as you build). **IRB stub:** `docs/irb-data-management-plan.md`.
+- Read the spec fully before coding. The non-obvious, load-bearing decisions:
+  - **Multi-basis identification** (a business can be >1 basis). **Circularity guardrail** (§4.3): the Google tag is BOTH a source AND the disclosure signal → the defensible disclosure rate is computed **only within the `certified` denominator**.
+  - **Dual-basis display/filter guarantee** (§4.3): a firm that is certified AND self-identified must show both and **must still appear when filtering `is_certified=true`**. Never collapse bases to one mutually-exclusive label for filtering. Use `is_certified` (not the derived `identification`) as the certified filter.
+  - **Public vs PRIVATE split** (§1.1, §5): disclosure DV, intersectional identity flags, and contact PII are PRIVATE — excluded from the public CSV export and the public site.
+
+### 2. Files/inputs to locate at the start
+- **Justin Frake's Google extract CSV** — in Kyle's **dissertation directory** (exact path NOT yet known; ASK KYLE or search `~/University of Michigan Dropbox/.../Dissertation*`). It's the interim input + the cross-check target (reproduce its **~14,000** Black-owned count).
+- **UCSD source** (to own the acquisition): Google Local Review Data 2021, https://jiachengli1995.github.io/google/index.html#complete-data — per-state **gzipped JSON, one record/line**, business METADATA files. Fields: name, address, **gmap_id**, latitude, longitude, category, **MISC** (attr dict), url, etc.
+- **CONFIRM the exact `MISC` key + value string** that carries the Black-owned attribute (e.g. a "Highlights"/"From the business" key containing "Identifies as Black-owned"). Do this on ONE state file first before scaling.
+
+### 3. Phase-2 build steps (suggested order)
+
+**(A) Multi-basis identification refactor** — `scripts/pipeline/db.py`, `adapter_base.py`, `run.py`, `export.py`, adapters, `js/main.js`, `index.html`, tests.
+- Add columns: `is_certified`, `is_self_identified`, `is_media_identified` (BOOL), `identification` (VARCHAR derived primary = strongest: certified>self>media), `identification_sources` (VARCHAR JSON list of {source,url,date}), `identification_date`.
+- Backfill existing rows: all current = `is_certified=true`, `identification='certified'`, `identification_sources` from `data_source`. Retire `confidence`/`confirmed_black` (the 22 confirmed_black adapters → `is_certified`). `mbe_unverified` stays OUT of the public DB (it belongs in the private `mbe_frame.duckdb` feeder).
+- `export.py`: define PUBLIC vs PRIVATE column lists; the public `businesses.csv` must EXCLUDE all PRIVATE columns (§5). Add a separate full/private export for Kyle (CSV + Parquet; optional Stata `.dta`).
+- Site: badges/filter use `is_certified`/`is_self_identified`/`is_media_identified` (currently the site keys off `confidence`/`confirmed_black` — update carefully; site is LIVE).
+- Tests first, keep green.
+
+**(B) Geographic enrichment** — extend `scripts/pipeline/geocoder.py`.
+- The Census batch geocoder can return **geographies** (use the `geographies` benchmark/vintage endpoint) → capture `county_fips`, `census_tract`. Derive `census_region` + `census_division` from state. Add `congressional_district` + `cd_vintage` (118th/2020 baseline; CD is versioned — see §6 caveat). Store lat/long on every business (already geocoded; needed for matching).
+- VERIFY what `geocoder.py` currently returns before extending.
+
+**(C) UCSD acquisition** — NEW `scripts/disclosure/acquire_google_local.py`. **HEAVY — run via a background subagent.**
+- Download per-state metadata from UCSD (all US states — decided), parse gzip-JSON, filter to Black-owned via the confirmed MISC key, extract → a `disclosers_google_2021` table (gmap_id, name, address, lat/long, category, the Black-owned flag, AND other identity attrs: women/veteran/LGBTQ → for intersectionality, PRIVATE). Version the script + write a data statement; cite UCSD (Zhang & Li; UCTopic / Personalized Showcases papers).
+- Validate against Justin's CSV (~14k). Start with ONE state to confirm parsing, then scale.
+
+**(D) Matching** — NEW `scripts/disclosure/match.py`. (Subagent or inline; reuse `entity_resolver.normalize_name`/`normalize_zip` + `rapidfuzz`.)
+- Block by state + coarse geo; score on normalized name + address/zip + lat/long distance; classify `matched`/`ambiguous`/`no_profile`.
+- Write PRIVATE disclosure fields: `google_gmap_id`, `google_match_status`, `google_match_score`, `google_match_date`, `discloses_black_google`, `disclosure_source`, `disclosure_observed_date`(2021-09), `disclosure_coded_by`('algorithm'), `disclosure_evidence_url`; intersectional `identity_women/veteran/lgbtq`, `google_misc`.
+- **Ingest disclosers into BBRT (deduped):** disclosers matched to an existing certified firm → also set `is_self_identified=true` (dual-basis). Disclosers NOT in BBRT and not certified → ADD as `is_self_identified=true`, source "Google Maps Black-owned attribute (UCSD Google Local 2021)".
+- **Compute the disclosure rate WITHIN the certified denominator** (exclude self-identified-via-Google to avoid circularity; exclude `no_profile`). Report match-quality stats.
+
+**(E) Wrap-up:** fill `docs/codebook.md` (every column, public/private, the circularity + 2021 + CD-vintage notes); compact the DB; `gh release upload data-2026-Q2 data/bbrt.duckdb --clobber`; commit code + `businesses.csv` + docs; push. Update CLAUDE.md counts.
+
+### 4. Decisions already locked (do NOT re-litigate)
+Variable name `identification` (keep) · acquire ALL US states · exclude `no_profile` from the rate · Yelp deferred (Fusion API lacks the badge; await Justin's method — DO NOT scrape) · no RA yet (ship automated; RA validation is a later slow-burn) · multi-basis + dual-basis guarantee · public/private split · disclosure rate within `certified`.
+
+### 5. Open questions to surface to Kyle (don't block on them)
+Post-2021 discloser acquisition w/o ToS violation (UCSD is fixed 2021; Places API lacks the attribute) · whether to expose intersectional identities publicly (default PRIVATE) · mining UCSD reviews (future paper; a sample-review agent once data is local) · self/media source add-mechanisms to verify before ingesting (blackownedeverything.co = self-registration; 15% Pledge; myblackreceipt).
+
+### 6. Context/process note
+This design emerged over a long session (compacted once). Phase 2 is token-heavy (multi-GB acquisition, big match) — **run acquisition + matching via background subagent(s)** and keep the main thread for the refactor + reviewing results, OR just let it run and rely on git/Release as the durability backstop (work is safe regardless of compaction). Memory files `bbrt-disclosure-study` and `BBRT Pipeline Infrastructure Status` summarize all of this.
+
+---
+
 ## 2026-06-14 (batch 3) — DC UCP (1,796) + base-state map coding → 23 sources, 36,928 firms
 
 - **`dc_ucp`** — DC UCP DBE, **1,796 Black firms** (Ethnicity="Black"; new jurisdiction = DC). The "DC UCP exported empty" call earlier was WRONG — the file is a custom **Oracle APEX HTML** export (not B2Gnow): single `<table>` whose data `<tr>` are NOT closed, and the Address column packs street/city/state/zip/phone/email/website across `<br/>` in one cell. `scripts/adapters/dc_ucp.py` parses it by grouping `<td>` cells into 9-col rows and splitting the address on `<br/>`. Validates base-state coding hard: DC-UCP firms are based MD 769 / DC 554 / VA 126 / GA 55 / … — almost all outside DC.
