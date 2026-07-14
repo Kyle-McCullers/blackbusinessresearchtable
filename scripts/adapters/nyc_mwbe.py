@@ -62,6 +62,10 @@ class NycMwbeAdapter(AdapterBase):
 
     def __init__(self, source_file: Path = SOURCE_FILE):
         self._source_file = source_file
+        if not self._source_file.exists():
+            raise FileNotFoundError(
+                f"NYC MWBE file not found: {self._source_file}"
+            )
 
     def fetch(self) -> list[dict]:
         """Load xlsx and return list of raw row dicts for Black-owned businesses."""

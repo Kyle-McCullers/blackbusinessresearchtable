@@ -657,8 +657,8 @@ def nyc_xlsx(tmp_path):
     return filepath
 
 
-def test_nyc_adapter_metadata():
-    adapter = NycMwbeAdapter()
+def test_nyc_adapter_metadata(nyc_xlsx):
+    adapter = NycMwbeAdapter(source_file=nyc_xlsx)
     assert adapter.SOURCE_ID == "nyc_mwbe"
     assert adapter.CONFIDENCE == "confirmed_black"
     assert adapter.PROGRAM == "MWBE"
@@ -734,6 +734,13 @@ def test_nyc_adapter_skips_none_ethnicity_rows(nyc_xlsx, tmp_path):
     records = adapter.run()
     names = [r["business_name"] for r in records]
     assert "Mystery Corp" not in names
+
+
+def test_nyc_adapter_raises_file_not_found():
+    # Missing file must fail at __init__ so discover_adapters() converts it to
+    # a clean [SKIP] + carry-forward instead of a run-time [ERROR] (exit 1).
+    with pytest.raises(FileNotFoundError):
+        NycMwbeAdapter(source_file=Path("/nonexistent/nyc_mwbe.xlsx"))
 
 
 # ── sam_8a adapter tests ─────────────────────────────────────────────────────

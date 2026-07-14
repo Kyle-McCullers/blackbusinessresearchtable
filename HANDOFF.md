@@ -4,6 +4,38 @@ Dated entries for resuming work across sessions. Most recent entry first.
 
 ---
 
+## 2026-07-14 — 🔧 Q3 quarterly run FAILED (July 1) — diagnosed + fixed; Q3 unpublished
+
+**What happened:** the scheduled 2026-07-01 Quarterly Pipeline run (ID 28522917607) built a
+correct Q3 snapshot (36,927 records; carry-forward covered all 19 file-based sources) but
+exited 1, so the **publish + commit steps never ran** — no Q3 release, no site update. The
+live site/Release still serve 2026-Q2.
+
+**Root causes (both fixed this session, branch `fix/quarterly-run-clean-skips` off `main`):**
+1. `nyc_mwbe` was the only file adapter that didn't check file existence in `__init__` — the
+   missing Dropbox file surfaced in `fetch()` as `[ERROR]` instead of a discovery-time
+   `[SKIP]`. Fixed to match the al_ombe/in_idoa convention (+ test, + made
+   `test_nyc_adapter_metadata` hermetic). 149 tests pass.
+2. `sam_8a` ran because the workflow passed `SAM_GOV_API_KEY`, then 404'd (known blocker:
+   personal data.gov key can't use the entity-extract API; needs a SAM.gov system account —
+   DECISIONS 2026-06-10). The workflow no longer passes the key, so sam_8a skips at
+   discovery. Re-add the secret line once a system account exists.
+
+Verified in a CI-simulated env (empty HOME, no key): only ct_das_smbe/de_osd/sc_smbcc/tx_hub
+run; everything else `[SKIP]`s → exit 0 → publish would proceed.
+
+**Decision stack for Kyle (ordering matters):**
+1. **Phase-2 go-live** (branch `feature/disclosure-phase2`, local-only; runbook in the
+   2026-06-27 entry on that branch) — also unblocks the Org Sci Stage-1 numbers.
+2. Merge this fix branch to `main` (PR or direct) — required before any workflow_dispatch
+   re-run, since Actions runs from `main`.
+3. **Re-publish Q3:** after 1+2, trigger the workflow manually with `SNAPSHOT_ID=2026-Q3`
+   (workflow_dispatch input), or run locally + `gh release upload`. If Phase 2 merges first,
+   the Q3 snapshot lands in the new multi-basis schema (migration is idempotent in
+   `db.open_db`) — cleaner than publishing a pre-Phase-2 Q3 and migrating after.
+
+---
+
 ## 2026-06-15 — ▶ PHASE 2 KICKOFF (disclosure study) — READ THIS FIRST, START HERE
 
 This is a cold-start brief for building **Phase 2** of the disclosure study in a fresh

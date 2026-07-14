@@ -41,7 +41,11 @@ jobs:
       - name: Run pipeline
         working-directory: scripts
         env:
-          SAM_GOV_API_KEY: ${{ secrets.SAM_GOV_API_KEY }}
+          # SAM_GOV_API_KEY intentionally NOT passed: the entity-extract API 404s
+          # with a personal data.gov key (needs a SAM.gov system account — see
+          # DECISIONS.md 2026-06-10). Without the key, sam_8a skips at discovery
+          # instead of failing the whole run at fetch. Re-add the secret here
+          # once a SAM.gov system account exists.
           SNAPSHOT_ID: ${{ github.event.inputs.snapshot_id }}
         run: |
           if [ -n "$SNAPSHOT_ID" ]; then
