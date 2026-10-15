@@ -533,6 +533,65 @@ def test_export_csv_row_count_equals_unique_businesses(db_with_snapshot, tmp_pat
     assert len(rows) == 2  # biz-1 and biz-2, deduplicated
 
 
+def test_export_csv_withholds_contact_fields(db_with_snapshot, tmp_path):
+    from pipeline.export import PRIVATE_COLUMNS, EXPORT_COLUMNS as _EC
+    out = tmp_path / "businesses.csv"
+    export_csv(db_with_snapshot, out, "2026-Q2")
+    with open(out) as f:
+        header = next(csv_module.reader(f))
+    assert set(PRIVATE_COLUMNS) == {"owner_name", "phone", "email"}
+    for col in PRIVATE_COLUMNS:
+        assert col not in header and col not in _EC
+    assert "website" in header
+
+
+@pytest.mark.parametrize("raw,expected", [
+    ("New York", "NY"), ("NY", "NY"), ("ny", "NY"), (" Delaware ", "DE"),
+    ("District of Columbia", "DC"), ("WashingtonDC", "DC"),
+    ("", ""), (None, ""), ("So", ""),
+])
+def test_normalize_state(raw, expected):
+    from pipeline.export import normalize_state
+    assert normalize_state(raw) == expected
+
+
+def test_export_csv_normalizes_address_state(tmp_path):
+    con = open_db(tmp_path / "t.duckdb")
+    write_businesses(con, [
+        _make_record(business_id="a", business_name="A", address_state="New York", source_id="s"),
+        _make_record(business_id="b", business_name="B", address_state="NY", source_id="s"),
+    ], "2026-Q2")
+    out = tmp_path / "businesses.csv"
+    export_csv(con, out, "2026-Q2")
+    with open(out) as f:
+        states = {r["address_state"] for r in csv_module.DictReader(f)}
+    assert states == {"NY"}
+
+
+def test_scrub_emails_blanks_email_website_and_cuts_free_text():
+    from pipeline.export import scrub_emails
+    r = scrub_emails({"website": "omart@1ninemedia.com", "description": "Call a@b.co today",
+                      "address_street": "1 Main St jane@x.org"})
+    assert r["website"] == ""
+    assert scrub_emails({"website": "http://info@acme.com/"})["website"] == ""
+    assert scrub_emails({"website": "https://x@gmail.com"})["website"] == ""
+    assert "@" not in r["description"] and "@" not in r["address_street"]
+    assert r["address_street"] == "1 Main St"
+    keep = scrub_emails({"website": "https://acme.com", "description": "No contact here"})
+    assert keep["website"] == "https://acme.com" and keep["description"] == "No contact here"
+
+
+def test_export_csv_has_no_email_addresses_anywhere(tmp_path):
+    con = open_db(tmp_path / "t.duckdb")
+    write_businesses(con, [_make_record(business_id="a", business_name="A", source_id="s",
+                                        website="x@y.com", description="mail me z@w.org")],
+                     "2026-Q2")
+    out = tmp_path / "businesses.csv"
+    export_csv(con, out, "2026-Q2")
+    import re as _re
+    assert not _re.search(r"[\w.+-]+@[\w-]+\.[a-z]{2,}", out.read_text(), _re.I)
+
+
 def test_export_csv_creates_parent_directories(db_with_snapshot, tmp_path):
     out = tmp_path / "nested" / "dir" / "businesses.csv"
     export_csv(db_with_snapshot, out, "2026-Q2")

@@ -231,7 +231,6 @@
           '<div class="popup-name">'  + escHtml(props.business_name || '') + '</div>' +
           '<div class="popup-conf">'  + escHtml(confidenceLabel(props.confidence)) + '</div>' +
           '<div class="popup-meta">'  + escHtml(props.industry || '') + ' · ' + escHtml(props.address_city || '') + '</div>' +
-          (props.owner_name   ? '<div class="popup-field"><span class="popup-label">Owner: </span>'   + escHtml(props.owner_name)   + '</div>' : '') +
           (props.year_founded ? '<div class="popup-field"><span class="popup-label">Founded: </span>' + escHtml(props.year_founded) + '</div>' : '') +
           (desc ? '<div class="popup-field"><span class="popup-label">About: </span>' + escHtml(desc) + '</div>' : '') +
           websiteHtml;
@@ -332,7 +331,6 @@
         geometry: { type: 'Point', coordinates: [lon, lat] },
         properties: {
           business_name: row.business_name || '',
-          owner_name:    row.owner_name    || '',
           year_founded:  row.year_founded  || '',
           address_city:  row.address_city  || '',
           industry:      row.industry      || '',
@@ -387,14 +385,13 @@
   }
 
   // ── Table ──────────────────────────────────────────────────────────────────
-  var EXPANDED_COLS = [7, 8, 9, 10, 11];
+  var EXPANDED_COLS = [6, 7, 8, 9, 10];
   function initTable(rows) {
     table = $('#business-table').DataTable({
       data: rows, pageLength: 25, lengthChange: false, autoWidth: false, dom: 'tip',
       columnDefs: [{ targets: EXPANDED_COLS, visible: false }],
       columns: [
         { data: 'business_name', title: 'Business Name' },
-        { data: 'owner_name',    title: 'Owner',    defaultContent: '—' },
         { data: 'address_city',  title: 'City',     defaultContent: '—' },
         { data: 'address_state', title: 'State',    defaultContent: '—' },
         { data: 'industry',      title: 'Industry', defaultContent: '—' },
@@ -590,11 +587,11 @@
             if (ok) ok.style.display = 'block';
           } else {
             if (btn) { btn.disabled = false; btn.textContent = 'Submit Request →'; }
-            alert('Something went wrong submitting the form. Please email kylemcc@umich.edu.');
+            alert('Something went wrong submitting the form. Please email data@blackbusinessresearchtable.com.');
           }
         }).catch(function () {
           if (btn) { btn.disabled = false; btn.textContent = 'Submit Request →'; }
-          alert('Network error. Please email kylemcc@umich.edu.');
+          alert('Network error. Please email data@blackbusinessresearchtable.com.');
         });
     });
   });

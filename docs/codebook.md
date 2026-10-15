@@ -25,6 +25,24 @@ fully specified during the Phase-2 build. `vis` = PUBLIC (in the public CSV) or 
 | county_fips, census_tract | str | PUBLIC | Joinable to ACS/Decennial |
 | congressional_district, cd_vintage | str,int | PUBLIC | CD + the redistricting vintage year (118th/2020 baseline) |
 
+## Contact fields (PRIVATE, released on request)
+| Column | Type | vis | Definition |
+|---|---|---|---|
+| owner_name | str | PRIVATE | Owner/contact name as listed by the certifying program |
+| phone | str | PRIVATE | Business phone as listed by the certifying program |
+| email | str | PRIVATE | Business email as listed by the certifying program |
+
+These come from public certification directories, but those directories serve one firm at a
+time behind a search form; a bulk CSV would be a ready-made contact list. They are withheld
+from the public export (`PRIVATE_COLUMNS` in `scripts/pipeline/export.py`) and released to
+verified researchers for research use on request: write to
+data@blackbusinessresearchtable.com with your affiliation and purpose; response within 10
+business days. `website` and social handles stay PUBLIC.
+
+## State codes
+`address_state` in the public CSV is always a 2-letter USPS code (or blank when the source
+value is missing or unrecognizable). The database keeps the raw source value.
+
 ## Disclosure layer (PRIVATE — not published)
 | Column | Type | vis | Definition |
 |---|---|---|---|
