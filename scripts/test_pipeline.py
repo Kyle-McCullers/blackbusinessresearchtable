@@ -2242,3 +2242,31 @@ def test_dc_ucp_parses_packed_address(tmp_path):
 
 def test_dc_ucp_confidence_is_confirmed_black():
     assert DcUcpAdapter.CONFIDENCE == "confirmed_black"
+
+
+# ── public DB (release asset) ────────────────────────────────────────────────
+
+def test_public_db_has_no_contact_data_anywhere_in_the_file(tmp_path):
+    from pipeline.public_db import build_public_db
+    src = tmp_path / "work.duckdb"
+    con = open_db(src)
+    write_businesses(con, [_make_record(
+        business_id="a", business_name="Alpha", source_id="s",
+        owner_name="CANARYOWNER", phone="555-CANARYPHONE", email="canary@mail.example",
+        website="canary2@mail.example", description="reach canary3@mail.example now",
+        source_fields='{"First Name": "CANARYRAW", "Email": "canary4@mail.example"}',
+    )], "2026-Q2")
+    write_snapshot_meta(con, "2026-Q2", 1, 0, ["s"], [])
+    con.execute("CHECKPOINT"); con.close()
+    dest = tmp_path / "public.duckdb"
+    build_public_db(src, dest)
+    blob = dest.read_bytes()
+    for canary in (b"CANARYOWNER", b"CANARYPHONE", b"canary", b"CANARYRAW"):
+        assert canary not in blob, canary
+    con = open_db(dest)
+    row = con.execute("SELECT business_name, description FROM businesses").fetchone()
+    assert row[0] == "Alpha"
+    assert row[1].startswith("reach") and "@" not in row[1]
+    assert con.execute("SELECT count(*) FROM snapshots").fetchone()[0] == 1
+    # the working DB is untouched
+    assert b"CANARYOWNER" in src.read_bytes()

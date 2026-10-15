@@ -11,3 +11,4 @@ data/mbe_frame.duckdb
 *.duckdb.bak-*
 data/bbrt.duckdb
 data/disclosure/
+data/public/

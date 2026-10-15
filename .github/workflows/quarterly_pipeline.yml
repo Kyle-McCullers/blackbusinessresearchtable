@@ -61,11 +61,16 @@ jobs:
           # Distribute the (large, growing) DuckDB via Releases instead of git.
           # A new dated release each run keeps citable per-snapshot download points;
           # the site links to /releases/latest/download/bbrt.duckdb (auto-resolves to newest).
+          #
+          # What is uploaded is a PUBLIC COPY with contact fields and raw source rows
+          # removed (scripts/pipeline/public_db.py). The working DB never leaves the runner.
+          # The asset keeps the name bbrt.duckdb so next quarter's download step still finds it.
+          (cd scripts && python -m pipeline.public_db ../data/bbrt.duckdb ../data/public/bbrt.duckdb)
           TAG="data-$(date +%Y-%m-%d)"
-          gh release create "$TAG" data/bbrt.duckdb \
+          gh release create "$TAG" data/public/bbrt.duckdb \
             --title "BBRT research panel — $TAG" \
-            --notes "Automated quarterly snapshot." --latest \
-          || gh release upload "$TAG" data/bbrt.duckdb --clobber
+            --notes "Automated quarterly snapshot. Contact fields are withheld; see the codebook." --latest \
+          || gh release upload "$TAG" data/public/bbrt.duckdb --clobber
 
       - name: Commit and push updated CSV + summary
         run: |
