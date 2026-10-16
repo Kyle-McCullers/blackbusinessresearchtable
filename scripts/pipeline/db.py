@@ -182,20 +182,27 @@ _BUSINESS_COLUMNS = [
 def carry_forward_records(
     con: duckdb.DuckDBPyConnection,
     snapshot_id: str,
-    succeeded_source_ids,
+    observed_keys,
 ) -> list[dict]:
-    """Return record dicts for sources that were present in the latest prior
-    snapshot but did NOT successfully run this cycle.
+    """Return record dicts from the latest prior snapshot that were NOT observed
+    in this run, so they stay in the record.
 
-    These are carried into the new snapshot so a source that simply didn't run
-    (missing file, transient error) is never recorded as a wave of business
-    exits. The caller stamps the new snapshot_id (via write_businesses) and must
-    NOT bump the registry last_seen for these — they were not freshly observed.
+    RETENTION POLICY (DECISIONS 2026-10-15): once a business has been in the panel it
+    stays in. Quarterly runs only add or update; a source dropping a firm, returning
+    nothing, or failing outright never removes it. This is deliberate: a source can
+    stop listing firms for reasons unrelated to the firms (program restructuring,
+    politics, a changed export), and the panel must not inherit that.
+
+    `observed_keys` is a set of (source_id, business_id) pairs seen this run. A prior
+    row is carried unless its pair is in the set, so this covers a whole source that
+    did not run, a source that ran but returned fewer firms, and a source that
+    returned none. A carried row keeps its original `last_verified`, which is how a
+    reader tells re-observed rows from retained ones. The caller stamps the new
+    snapshot_id (via write_businesses) and must NOT bump the registry last_seen.
     """
-    succeeded = set(succeeded_source_ids)
+    observed = set(observed_keys)
     # Latest snapshot at or before the current one. Using <= (not <>) means a
-    # same-quarter re-run also carries un-run sources forward from the rows
-    # already written for this quarter, not just from a prior quarter.
+    # same-quarter re-run also carries from the rows already written this quarter.
     prior = con.execute(
         "SELECT MAX(snapshot_id) FROM businesses WHERE snapshot_id <= ?",
         [snapshot_id],
@@ -210,7 +217,7 @@ def carry_forward_records(
     carried = []
     for row in rows:
         rec = dict(zip(_BUSINESS_COLUMNS, row))
-        if rec["source_id"] in succeeded:
+        if (rec["source_id"], rec["business_id"]) in observed:
             continue
         try:
             rec["source_fields"] = json.loads(rec["source_fields"]) if rec["source_fields"] else {}
@@ -219,6 +226,19 @@ def carry_forward_records(
         rec["carried_forward"] = True
         carried.append(rec)
     return carried
+
+
+def source_counts(con: duckdb.DuckDBPyConnection, snapshot_id: str) -> dict:
+    """Records per source in the latest snapshot at or before `snapshot_id`."""
+    prior = con.execute(
+        "SELECT MAX(snapshot_id) FROM businesses WHERE snapshot_id <= ?", [snapshot_id]
+    ).fetchone()[0]
+    if prior is None:
+        return {}
+    return dict(con.execute(
+        "SELECT source_id, COUNT(*) FROM businesses WHERE snapshot_id = ? GROUP BY 1",
+        [prior],
+    ).fetchall())
 
 
 def write_snapshot_meta(

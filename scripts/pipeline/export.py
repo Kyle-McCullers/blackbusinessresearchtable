@@ -130,6 +130,8 @@ def write_summary(
     sources_run: list[str],
     sources_failed: list[str],
     sources_carried_forward: list[str] = None,
+    records_retained: int = 0,
+    sources_flagged: dict = None,
 ) -> None:
     """Write a human-readable run report.
 
@@ -148,5 +150,10 @@ def write_summary(
         f"Sources failed ({len(sources_failed)}): {', '.join(sources_failed) or 'none'}",
         f"Sources carried forward ({len(sources_carried_forward)}): "
         f"{', '.join(sources_carried_forward) or 'none'}",
+        f"Records retained from prior snapshot, not re-observed this run: {records_retained}",
+        f"Sources flagged ({len(sources_flagged or {})}): "
+        + (", ".join(f"{k} ({v})" for k, v in sorted((sources_flagged or {}).items()))
+           or "none"),
+        "Retention policy: a business once recorded is never removed; see DECISIONS.md.",
     ]
     output_path.write_text("\n".join(lines) + "\n")

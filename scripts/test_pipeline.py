@@ -203,7 +203,7 @@ def test_carry_forward_returns_records_for_unrun_sources(tmp_db):
     write_snapshot_meta(tmp_db, "2026-Q2", 2, 0, ["src_a", "src_b"], [])
 
     # New run: only src_a succeeded; src_b did not run this cycle.
-    carried = carry_forward_records(tmp_db, "2026-Q3", {"src_a"})
+    carried = carry_forward_records(tmp_db, "2026-Q3", {("src_a", "uuid-1")})
 
     ids = {r["business_id"] for r in carried}
     assert ids == {"uuid-2"}                       # only the un-run source carried
@@ -233,8 +233,56 @@ def test_carry_forward_empty_when_all_sources_ran(tmp_db):
         _make_record(business_id="uuid-1", source_id="src_a"),
     ], "2026-Q2")
     write_snapshot_meta(tmp_db, "2026-Q2", 1, 0, ["src_a"], [])
-    carried = carry_forward_records(tmp_db, "2026-Q3", {"src_a"})
+    carried = carry_forward_records(tmp_db, "2026-Q3", {("src_a", "uuid-1")})
     assert carried == []
+
+
+def test_retention_keeps_firm_a_running_source_stopped_listing(tmp_db):
+    # The source ran and still lists uuid-1 but no longer lists uuid-2. uuid-2 stays.
+    write_businesses(tmp_db, [
+        _make_record(business_id="uuid-1", source_id="src_a"),
+        _make_record(business_id="uuid-2", source_id="src_a", business_name="Gone Co"),
+    ], "2026-Q2")
+    write_snapshot_meta(tmp_db, "2026-Q2", 2, 0, ["src_a"], [])
+    carried = carry_forward_records(tmp_db, "2026-Q3", {("src_a", "uuid-1")})
+    assert [r["business_id"] for r in carried] == ["uuid-2"]
+    assert carried[0]["business_name"] == "Gone Co"
+
+
+def test_retention_keeps_every_firm_when_a_source_returns_nothing(tmp_db):
+    # The Texas 2026-10 case: the fetch "succeeded" with zero usable rows.
+    write_businesses(tmp_db, [
+        _make_record(business_id=f"tx-{i}", source_id="tx_hub") for i in range(5)
+    ], "2026-Q2")
+    write_snapshot_meta(tmp_db, "2026-Q2", 5, 0, ["tx_hub"], [])
+    carried = carry_forward_records(tmp_db, "2026-Q3", set())
+    assert len(carried) == 5
+
+
+def test_retention_does_not_resurrect_a_fresh_observation(tmp_db):
+    # A re-observed firm is NOT carried (the fresh record replaces it), so updates win.
+    write_businesses(tmp_db, [_make_record(business_id="u", source_id="s")], "2026-Q2")
+    write_snapshot_meta(tmp_db, "2026-Q2", 1, 0, ["s"], [])
+    assert carry_forward_records(tmp_db, "2026-Q3", {("s", "u")}) == []
+
+
+def test_retained_record_keeps_original_last_verified(tmp_db):
+    write_businesses(tmp_db, [
+        _make_record(business_id="u", source_id="s", last_verified="2026-06-14"),
+    ], "2026-Q2")
+    write_snapshot_meta(tmp_db, "2026-Q2", 1, 0, ["s"], [])
+    carried = carry_forward_records(tmp_db, "2026-Q3", set())
+    assert carried[0]["last_verified"] == "2026-06-14"
+
+
+def test_source_health_flags_failed_empty_and_shrunken_sources():
+    from pipeline.run import source_health
+    prior = {"tx": 4074, "sc": 458, "ct": 970, "de": 335, "manual": 100}
+    fresh = {"tx": 0, "ct": 1001, "de": 100}     # sc failed, manual did not run
+    flagged = source_health(prior, fresh, ["sc"])
+    assert set(flagged) == {"sc", "tx", "de"}
+    assert "failed" in flagged["sc"] and "0 records" in flagged["tx"]
+    assert "ct" not in flagged and "manual" not in flagged
 
 
 def test_carry_forward_uses_only_latest_prior_snapshot(tmp_db):

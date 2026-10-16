@@ -30,6 +30,7 @@ from pipeline.adapter_base import AdapterBase
 from pipeline.db import (
     open_db, upsert_source, write_businesses,
     write_snapshot_meta, get_registry, upsert_registry, carry_forward_records,
+    source_counts,
 )
 from pipeline.entity_resolver import resolve
 from pipeline.geocoder import batch_geocode
@@ -71,6 +72,31 @@ def discover_adapters(adapters_dir: Path = ADAPTERS_DIR) -> list:
     return adapters
 
 
+SHRINK_RATIO = 0.5   # a source returning under half its prior count is flagged
+
+
+def source_health(prior_counts: dict, fresh_counts: dict, sources_failed) -> dict:
+    """Flag sources whose fresh data looks wrong. Retention keeps the record whole
+    regardless; this makes the problem visible so a human fixes the source.
+
+    Returns {source_id: reason} for failed, empty, or sharply shrunken sources.
+    """
+    flagged = {}
+    for sid in sources_failed:
+        flagged[sid] = "failed"
+    for sid, prior in prior_counts.items():
+        if sid in flagged:
+            continue
+        fresh = fresh_counts.get(sid)
+        if fresh is None:
+            continue                     # source did not run (e.g. manual file absent)
+        if fresh == 0:
+            flagged[sid] = f"returned 0 records (prior {prior})"
+        elif prior and fresh < SHRINK_RATIO * prior:
+            flagged[sid] = f"returned {fresh} records (prior {prior})"
+    return flagged
+
+
 def run(snapshot_id: str = None) -> None:
     snapshot_id = snapshot_id or current_snapshot_id()
     print(f"\n=== BBRT Pipeline — {snapshot_id} ===\n")
@@ -87,6 +113,8 @@ def run(snapshot_id: str = None) -> None:
         "(SELECT MAX(snapshot_id) FROM snapshots)"
     ).fetchone()
     prior_count = prior_count_row[0] if prior_count_row else 0
+
+    prior_source_counts = source_counts(con, snapshot_id)
 
     adapters = discover_adapters()
     print(f"Discovered {len(adapters)} adapter(s): "
@@ -136,26 +164,41 @@ def run(snapshot_id: str = None) -> None:
     geocoded_count = sum(1 for r in all_records if r.get("latitude"))
     print(f"  {geocoded_count}/{len(all_records)} records have coordinates.")
 
-    # Carry forward any source present in the latest snapshot that did NOT run
-    # successfully this cycle (skipped for a missing file, or errored). Without
-    # this, a non-running source would vanish from the snapshot and be recorded
-    # as a wave of false business exits — corrupting the longitudinal panel.
-    # Decision 2026-06-10. Carried records already carry business_id + coords,
-    # so they are injected AFTER resolution/geocoding and their registry rows
-    # are left untouched (no last_seen bump — they were not freshly observed).
-    carried = carry_forward_records(con, snapshot_id, set(sources_run))
+    # RETENTION (DECISIONS 2026-10-15): once in the record, always in the record.
+    # Every row in the prior snapshot that this run did not re-observe is carried into
+    # the new snapshot. That covers a source that did not run, one that failed, one
+    # that returned nothing, and individual firms a source stopped listing. Carried
+    # records already carry business_id + coords, so they are injected AFTER
+    # resolution/geocoding, keep their original last_verified, and their registry rows
+    # are left untouched (no last_seen bump: they were not freshly observed).
+    observed = {(r["source_id"], r["business_id"]) for r in all_records}
+    fresh_counts = {}
+    for r in all_records:
+        fresh_counts[r["source_id"]] = fresh_counts.get(r["source_id"], 0) + 1
+    for sid in sources_run:
+        fresh_counts.setdefault(sid, 0)
+    carried = carry_forward_records(con, snapshot_id, observed)
     sources_carried = sorted({r["source_id"] for r in carried})
     if carried:
-        print(f"\nCarrying forward {len(carried)} records from un-run "
-              f"source(s): {', '.join(sources_carried)}")
+        print(f"\nRetaining {len(carried)} previously-recorded records not re-observed "
+              f"this run, from: {', '.join(sources_carried)}")
         all_records.extend(carried)
+    flagged = source_health(prior_source_counts, fresh_counts, sources_failed)
 
     print(f"\nWriting to DuckDB...")
     write_businesses(con, all_records, snapshot_id)
     upsert_registry(con, snapshot_id, new_entries)
 
-    records_dropped = max(prior_count - len(all_records), 0)
-    write_snapshot_meta(con, snapshot_id, len(all_records),
+    # Report what is STORED, not what was attempted: rows sharing a
+    # (business_id, snapshot_id, source_id) key are skipped on insert, so
+    # len(all_records) can overstate the snapshot (2026-Q4 dry run: 37,856 vs 36,961).
+    stored = con.execute(
+        "SELECT COUNT(*) FROM businesses WHERE snapshot_id = ?", [snapshot_id]
+    ).fetchone()[0]
+    if stored != len(all_records):
+        print(f"  NOTE: {len(all_records) - stored} duplicate-key rows skipped on insert.")
+    records_dropped = max(prior_count - stored, 0)
+    write_snapshot_meta(con, snapshot_id, stored,
                         records_dropped, sources_run, sources_failed,
                         sources_carried_forward=sources_carried)
 
@@ -163,15 +206,25 @@ def run(snapshot_id: str = None) -> None:
     export_csv(con, CSV_PATH, snapshot_id)
 
     summary_path = SNAPSHOTS_DIR / f"{snapshot_id}-summary.txt"
-    write_summary(summary_path, snapshot_id, len(all_records),
+    write_summary(summary_path, snapshot_id, stored,
                   records_dropped, sources_run, sources_failed,
-                  sources_carried_forward=sources_carried)
+                  sources_carried_forward=sources_carried,
+                  records_retained=len(carried), sources_flagged=flagged)
     print(f"Summary: {summary_path}")
 
     con.close()
-    print(f"\nDone. {len(all_records)} records in snapshot {snapshot_id}.")
-    if sources_failed:
-        print(f"FAILED SOURCES: {', '.join(sources_failed)}")
+    print(f"\nDone. {stored} records in snapshot {snapshot_id}.")
+    # Nothing is lost when a source misbehaves (retention), so a flagged source does
+    # not block publication. It is surfaced as a GitHub Actions warning and in the
+    # snapshot summary so the stale source gets fixed. Only a run in which NO adapter
+    # produced fresh data is treated as an error.
+    for sid, why in sorted(flagged.items()):
+        print(f"::warning title=Stale source {sid}::{sid} {why}; prior records retained")
+    if flagged:
+        print(f"FLAGGED SOURCES (records retained from prior snapshot): "
+              f"{', '.join(sorted(flagged))}")
+    if not sources_run:
+        print("ERROR: no adapter ran successfully.")
         sys.exit(1)
 
 

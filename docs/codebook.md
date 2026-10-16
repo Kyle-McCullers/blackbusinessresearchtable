@@ -39,6 +39,18 @@ verified researchers for research use on request: write to
 data@blackbusinessresearchtable.com with your affiliation and purpose; response within 10
 business days. `website` and social handles stay PUBLIC.
 
+## Retention and `last_verified`
+**A business, once recorded, is never removed.** Each quarterly run adds new firms and updates
+existing ones; it never deletes. If a source stops listing a firm, returns nothing, or cannot
+be fetched, the firm stays in every later snapshot with its last observed values.
+
+`last_verified` is the date the record was last observed in its source. A row whose
+`last_verified` is earlier than the snapshot date was **retained**, not re-observed that
+quarter. Consequences for analysis: absence of a firm from a source's current list is not
+recorded as an exit or decertification, and the panel measures first observation, not
+survival. Do not infer firm closure from staleness. Each snapshot summary lists sources that
+were flagged (failed, empty, or sharply shrunken) and how many records were retained.
+
 ## State codes
 `address_state` in the public CSV is always a 2-letter USPS code (or blank when the source
 value is missing or unrecognizable). The database keeps the raw source value.
