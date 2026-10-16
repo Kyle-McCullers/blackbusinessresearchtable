@@ -1,0 +1,12 @@
+BBRT Quarterly Pipeline — 2026-Q4
+Run date: 2026-10-16
+
+Records in snapshot: 36960
+Records dropped from prior snapshot: 0
+
+Sources run (3): ct_das_smbe, de_osd, tx_hub
+Sources failed (1): sc_smbcc
+Sources carried forward (22): al_ombe, ar_mwbe, atlanta_aabe, baltimore_mwboo, ca_mbe, chicago_mwbe, ct_das_smbe, dc_ucp, fl_mbe, hawaii_dbe, houston_obo, in_idoa, ma_sdo, md_mbe, nc_hub, nv_dbe, nyc_mwbe, or_cobid, pa_ucp_dbe, sc_smbcc, tx_hub, va_swam
+Records retained from prior snapshot, not re-observed this run: 36088
+Sources flagged (2): sc_smbcc (failed), tx_hub (returned 0 records (prior 4074))
+Retention policy: a business once recorded is never removed; see DECISIONS.md.
