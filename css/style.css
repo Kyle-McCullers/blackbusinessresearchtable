@@ -433,3 +433,11 @@ footer { background: var(--black); padding: 28px 0; }
 }
 .form-success p { font-size: 14px; color: #2d4a3e; margin-bottom: 14px; }
 .form-success .btn-primary, .form-success .btn-secondary { margin-right: 10px; text-decoration: none; }
+
+.stat-footnote {
+  max-width: 720px;
+  margin: 16px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}

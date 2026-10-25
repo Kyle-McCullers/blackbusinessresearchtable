@@ -20,6 +20,7 @@ EXPORT_COLUMNS = [
     "yelp_url", "google_maps_url",
     "discloses_google_maps", "discloses_yelp", "discloses_instagram",
     "data_source", "last_verified", "confidence",
+    "certification_status", "first_certified", "certification_expires",
 ]
 
 _STATE_ABBR = {
@@ -132,6 +133,7 @@ def write_summary(
     sources_carried_forward: list[str] = None,
     records_retained: int = 0,
     sources_flagged: dict = None,
+    records_former: int = 0,
 ) -> None:
     """Write a human-readable run report.
 
@@ -144,6 +146,8 @@ def write_summary(
         f"Run date: {date.today()}",
         f"",
         f"Records in snapshot: {records_total}",
+        f"  of which formerly certified (kept in the record, excluded from the headline "
+        f"count): {records_former}",
         f"Records dropped from prior snapshot: {records_dropped}",
         f"",
         f"Sources run ({len(sources_run)}): {', '.join(sources_run) or 'none'}",

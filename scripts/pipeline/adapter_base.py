@@ -14,6 +14,9 @@ BBRT_FIELDS = [
     "yelp_url", "google_maps_url",
     "discloses_google_maps", "discloses_yelp", "discloses_instagram",
     "data_source", "last_verified",
+    # Certification status as the source reports it: "current", "former", or ""
+    # (the source has no status concept). Dates are ISO YYYY-MM-DD or "".
+    "certification_status", "first_certified", "certification_expires",
 ]
 
 

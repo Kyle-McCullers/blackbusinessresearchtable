@@ -1,11 +1,10 @@
 column,description
 business_id,Stable UUID for the business across all quarterly snapshots (panel identifier).
 business_name,Legal or registered business name as listed by the certifying source.
-owner_name,Owner/principal name where the source provides it.
 year_founded,"Year the business was established, where available."
 address_street,Street address.
 address_city,City.
-address_state,"State (USPS abbreviation or full name, as provided by the source)."
+address_state,"State, 2-letter USPS code; blank if the source value could not be mapped to a state."
 address_zip,ZIP code.
 latitude,Latitude (source-provided WKT point or US Census geocoder); blank if not geocoded.
 longitude,Longitude; blank if not geocoded.
@@ -14,8 +13,6 @@ naics_code,NAICS industry code where available.
 certification,"Certification type from the source (e.g., MBE, HUB, DBE, 8(a))."
 description,"Free-text business description from the source, where available."
 website,Business website URL.
-phone,Business phone.
-email,"Business email, where the source publishes it."
 instagram_handle,Instagram handle (reserved; populated by future enrichment).
 facebook_url,Facebook URL (reserved).
 tiktok_handle,TikTok handle (reserved).
@@ -25,5 +22,9 @@ discloses_google_maps,Whether the business discloses a Google Maps presence (res
 discloses_yelp,Whether the business discloses a Yelp presence (reserved).
 discloses_instagram,Whether the business discloses an Instagram presence (reserved).
 data_source,Human-readable name of the certifying source/program this record came from.
-last_verified,Date this record was last observed in the source.
+last_verified,"Date this record was last observed in the source. A date older than the snapshot date means the record is retained from an earlier quarter and was not re-observed; absence from a source is never treated as a business closing."
 confidence,confirmed_black = source has an explicit Black/African American ethnicity field used to filter; mbe_unverified = source identifies only 'minority-owned' with no ethnicity breakdown.
+certification_status,"current = the source lists a currently valid certification; former = every certification term the source lists has expired; blank = the source reports no status (treat as listed). Populated for Connecticut so far. Headline counts exclude former firms but they remain in the data; certification shows a program lists a firm, not whether the business exists."
+first_certified,Start date of the earliest certification term the source lists (where reported).
+certification_expires,End date of the most recent certification term the source lists (where reported).
+Contact fields,"Owner name, phone and email are not published here; they are released to verified researchers on request (data@blackbusinessresearchtable.com)."

@@ -16,7 +16,7 @@ from pipeline.db import open_db
 from pipeline.export import PRIVATE_COLUMNS, _STATE_ABBR, _VALID_ABBR
 
 _EMAIL = r"[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}"
-_TABLES = ["sources", "snapshots", "business_registry", "field_catalog"]
+_TABLES = ["sources", "snapshots", "business_registry", "field_catalog", "merged_records"]
 
 
 def build_public_db(src: Path, dest: Path) -> None:
@@ -31,7 +31,14 @@ def build_public_db(src: Path, dest: Path) -> None:
     pairs = {**_STATE_ABBR, **{a.lower(): a for a in _VALID_ABBR}}
     con.executemany("INSERT INTO state_map VALUES (?, ?)", list(pairs.items()))
     con.execute(f"ATTACH '{Path(src)}' AS s (READ_ONLY)")
+    src_tables = {r[0] for r in con.execute(
+        "SELECT table_name FROM information_schema.tables WHERE table_catalog = 's'").fetchall()}
+    src_cols = {r[0] for r in con.execute(
+        "SELECT column_name FROM information_schema.columns "
+        "WHERE table_catalog = 's' AND table_name = 'businesses'").fetchall()}
     for t in _TABLES:
+        if t not in src_tables:
+            continue          # older DBs predate merged_records
         if t == "snapshots":
             # Rows written before the carry-forward migration hold NULL here; the
             # fresh schema is NOT NULL DEFAULT '[]'.
@@ -45,7 +52,9 @@ def build_public_db(src: Path, dest: Path) -> None:
     cols = [r[1] for r in con.execute("PRAGMA table_info('businesses')").fetchall()]
     exprs = []
     for c in cols:
-        if c in PRIVATE_COLUMNS or c == "source_fields":
+        if c not in src_cols:
+            exprs.append(f"NULL AS {c}")     # column added after the source DB was built
+        elif c in PRIVATE_COLUMNS or c == "source_fields":
             exprs.append(f"NULL AS {c}")
         elif c == "address_state":
             exprs.append(

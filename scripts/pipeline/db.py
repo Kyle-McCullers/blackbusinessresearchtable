@@ -62,6 +62,9 @@ _DDL = [
         data_source           VARCHAR,
         last_verified         VARCHAR,
         source_fields         VARCHAR,
+        certification_status  VARCHAR,
+        first_certified       VARCHAR,
+        certification_expires VARCHAR,
         PRIMARY KEY (business_id, snapshot_id, source_id)
     )
     """,
@@ -75,6 +78,15 @@ _DDL = [
         first_seen         VARCHAR NOT NULL,
         last_seen          VARCHAR NOT NULL,
         is_active          BOOLEAN NOT NULL
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS merged_records (
+        old_business_id  VARCHAR NOT NULL,
+        kept_business_id VARCHAR NOT NULL,
+        source_id        VARCHAR NOT NULL,
+        reason           VARCHAR NOT NULL,
+        merged_on        DATE    NOT NULL
     )
     """,
     """
@@ -102,6 +114,10 @@ def open_db(db_path: Path = DB_PATH) -> duckdb.DuckDBPyConnection:
         "ALTER TABLE snapshots ADD COLUMN IF NOT EXISTS "
         "sources_carried_forward VARCHAR"
     )
+    # Migration: certification-status columns (appended last so migrated and fresh
+    # tables share one column order).
+    for col in ("certification_status", "first_certified", "certification_expires"):
+        con.execute(f"ALTER TABLE businesses ADD COLUMN IF NOT EXISTS {col} VARCHAR")
     return con
 
 
@@ -127,7 +143,7 @@ def write_businesses(
         con.execute(
             """
             INSERT INTO businesses VALUES (
-                ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?
+                ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?
             ) ON CONFLICT DO NOTHING
             """,
             [
@@ -163,6 +179,9 @@ def write_businesses(
                 r.get("data_source", ""),
                 r.get("last_verified", ""),
                 json.dumps(r.get("source_fields", {})),
+                r.get("certification_status", ""),
+                r.get("first_certified", ""),
+                r.get("certification_expires", ""),
             ],
         )
 
@@ -176,6 +195,7 @@ _BUSINESS_COLUMNS = [
     "facebook_url", "tiktok_handle", "yelp_url", "google_maps_url",
     "discloses_google_maps", "discloses_yelp", "discloses_instagram", "data_source",
     "last_verified", "source_fields",
+    "certification_status", "first_certified", "certification_expires",
 ]
 
 

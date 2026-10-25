@@ -29,14 +29,27 @@ jobs:
       - name: Install dependencies
         run: pip install -r scripts/requirements.txt
 
-      - name: Fetch latest research panel DB from Releases
+      - name: Fetch latest research panel DB
         env:
           GH_TOKEN: ${{ github.token }}
+          ARCHIVE_TOKEN: ${{ secrets.PRIVATE_ARCHIVE_TOKEN }}
+          ARCHIVE_REPO: ${{ vars.PRIVATE_ARCHIVE_REPO || 'Kyle-McCullers/bbrt-private-archive' }}
         run: |
-          # The DB is distributed via GitHub Releases (not committed — it's a large
-          # growing binary). Pull the latest so the pipeline can append this quarter's
-          # snapshot and carry sources forward. First-ever run starts fresh.
-          gh release download --pattern bbrt.duckdb --dir data --clobber || echo "No prior release DB; starting fresh."
+          # Prefer the PRIVATE full working DB (it still has contact fields for firms
+          # carried forward from earlier quarters). Fall back to the public Release copy
+          # (contacts withheld) when no private archive exists yet. Pull the latest so the
+          # pipeline appends this quarter's snapshot and carries records forward.
+          # First-ever run starts fresh.
+          TAG=""
+          if [ -n "$ARCHIVE_TOKEN" ]; then
+            TAG=$(GH_TOKEN="$ARCHIVE_TOKEN" gh release list --repo "$ARCHIVE_REPO" --limit 50 --json tagName --jq '[.[].tagName | select(startswith("full-"))] | sort | last // ""' || true)
+          fi
+          if [ -n "$TAG" ] && GH_TOKEN="$ARCHIVE_TOKEN" gh release download "$TAG" --repo "$ARCHIVE_REPO" --pattern bbrt.duckdb --dir data --clobber; then
+            echo "Base DB: private archive $TAG"
+          else
+            gh release download --pattern bbrt.duckdb --dir data --clobber || echo "No prior release DB; starting fresh."
+            echo "::warning title=Base DB is the public copy::No private archive release found; carried-forward firms have no contact fields in this run."
+          fi
 
       - name: Run pipeline
         working-directory: scripts
@@ -53,6 +66,25 @@ jobs:
           else
             python -m pipeline.run
           fi
+
+      - name: Archive the full working DB privately
+        env:
+          ARCHIVE_TOKEN: ${{ secrets.PRIVATE_ARCHIVE_TOKEN }}
+          ARCHIVE_REPO: ${{ vars.PRIVATE_ARCHIVE_REPO || 'Kyle-McCullers/bbrt-private-archive' }}
+        run: |
+          # The working DB holds owner/phone/email and raw source rows for every firm.
+          # It must never be public, but it must not be lost either: the public Release
+          # copy cannot regenerate contacts for firms a source has stopped listing
+          # (retention policy), so this private copy is the only complete record.
+          if [ -z "$ARCHIVE_TOKEN" ]; then
+            echo "::warning title=Private archive skipped::PRIVATE_ARCHIVE_TOKEN is not set. The full working DB was NOT saved; contact fields for this quarter will be lost when this runner exits."
+            exit 0
+          fi
+          TAG="full-$(date +%Y-%m-%d-%H%M)"
+          GH_TOKEN="$ARCHIVE_TOKEN" gh release create "$TAG" data/bbrt.duckdb \
+            --repo "$ARCHIVE_REPO" --title "Full working DB — $TAG" \
+            --notes "PRIVATE. Contains contact fields and raw source rows. Do not make public." \
+          || echo "::error title=Private archive FAILED::Could not save the full working DB to $ARCHIVE_REPO."
 
       - name: Publish research panel DB to a GitHub Release
         env:

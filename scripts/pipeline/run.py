@@ -205,11 +205,15 @@ def run(snapshot_id: str = None) -> None:
     print(f"Writing businesses.csv...")
     export_csv(con, CSV_PATH, snapshot_id)
 
+    former = con.execute(
+        "SELECT COUNT(*) FROM businesses WHERE snapshot_id = ? AND certification_status = 'former'",
+        [snapshot_id]).fetchone()[0]
     summary_path = SNAPSHOTS_DIR / f"{snapshot_id}-summary.txt"
     write_summary(summary_path, snapshot_id, stored,
                   records_dropped, sources_run, sources_failed,
                   sources_carried_forward=sources_carried,
-                  records_retained=len(carried), sources_flagged=flagged)
+                  records_retained=len(carried), sources_flagged=flagged,
+                  records_former=former)
     print(f"Summary: {summary_path}")
 
     con.close()

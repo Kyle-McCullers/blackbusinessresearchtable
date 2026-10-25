@@ -55,6 +55,24 @@ were flagged (failed, empty, or sharply shrunken) and how many records were reta
 `address_state` in the public CSV is always a 2-letter USPS code (or blank when the source
 value is missing or unrecognizable). The database keeps the raw source value.
 
+## Certification status
+
+| column | type | notes |
+|---|---|---|
+| certification_status | enum | `current` (certified in the source's latest listing), `former` (every listed certification term has expired), or blank (the source reports no status; treat as "listed") |
+| first_certified | date | start of the earliest certification term the source lists |
+| certification_expires | date | end of the most recent term |
+
+Populated for Connecticut (`ct_das_smbe`) so far; other sources are blank until their status fields are mapped.
+**Headline counts exclude `former` firms; the rows stay in the data.** Certification is evidence a
+program listed a firm, not that the firm exists or operates, so a larger total (current + former)
+can be derived by including `former`. A lapsed certification must not be read as a closure.
+
+Some programs list one row per certification term. Connecticut did; it now yields one record per
+firm, and its original term-level rows are preserved in `source_fields.certification_terms`
+(private). Superseded business_ids from the one-time 2026-10-25 merge are listed in the
+`merged_records` table (old_business_id, kept_business_id, reason).
+
 ## Disclosure layer (PRIVATE — not published)
 | Column | Type | vis | Definition |
 |---|---|---|---|

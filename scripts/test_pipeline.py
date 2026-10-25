@@ -1372,7 +1372,7 @@ def test_in_idoa_raises_file_not_found():
 from adapters.ct_das_smbe import CtDasSmbeAdapter
 
 _CT_HEADERS = [
-    "vendorname", "business_address1", "townnamecrosswalk_standardized_town",
+    "link_to_company_detail_page", "new_certification", "vendorname", "business_address1", "townnamecrosswalk_standardized_town",
     "zip", "county", "business_state", "certification_type",
     "class_description_detailed", "active_date", "expiration_date", "status",
     "product", "gs_code", "goods_and_services", "location",
@@ -1392,15 +1392,19 @@ def _ct_row(vendorname="Down To Earth Consulting LLC",
             state="CT", zipcode="06795", cert_type="MBE",
             ethnicity="Black American", gs_code="541330",
             goods="Engineering Services", product="Geotechnical Services",
-            location="POINT (-73.11257 41.60364)"):
+            location="POINT (-73.11257 41.60364)", vendor_id=None,
+            status="Certified", active="2028-05-22", expires="2030-05-21"):
+    vendor_id = vendor_id or "V-" + vendorname.replace(" ", "")
     return {
+        "link_to_company_detail_page": f"https://ct.example/Form.aspx?templateId=T&vendorId={vendor_id}",
+        "new_certification": "Renewal",
         "vendorname": vendorname, "business_address1": street,
         "townnamecrosswalk_standardized_town": city, "zip": zipcode,
         "county": "NA", "business_state": state,
         "certification_type": cert_type,
         "class_description_detailed": ethnicity,
-        "active_date": "2028-05-22T00:00:00.000",
-        "expiration_date": "2030-05-21T00:00:00.000", "status": "Certified",
+        "active_date": active + "T00:00:00.000",
+        "expiration_date": expires + "T00:00:00.000", "status": status,
         "product": product, "gs_code": gs_code, "goods_and_services": goods,
         "location": location,
     }
@@ -1464,6 +1468,71 @@ def test_ct_handles_missing_point():
 
 def test_ct_confidence_is_confirmed_black():
     assert CtDasSmbeAdapter.CONFIDENCE == "confirmed_black"
+
+
+def test_ct_collapses_certification_terms_to_one_record_per_firm():
+    # One firm, three terms (the source lists a firm once per renewal).
+    csv_text = _make_ct_csv([
+        _ct_row(vendorname="Renewing Co", vendor_id="V1", status="Certified",
+                active="2026-10-31", expires="2028-10-30"),
+        _ct_row(vendorname="Renewing Co", vendor_id="V1", status="Expired",
+                active="2023-06-20", expires="2023-12-20", gs_code="", goods="", product=""),
+        _ct_row(vendorname="Renewing Co", vendor_id="V1", status="Expired",
+                active="2021-06-19", expires="2023-06-19", gs_code="", goods="", product=""),
+        _ct_row(vendorname="Other Co", vendor_id="V2"),
+    ])
+    with patch("requests.get", return_value=_ct_response(csv_text)):
+        records = CtDasSmbeAdapter().run()
+    assert sorted(r["business_name"] for r in records) == ["Other Co", "Renewing Co"]
+    rec = next(r for r in records if r["business_name"] == "Renewing Co")
+    assert rec["source_business_id"] == "V1"
+    assert rec["certification_status"] == "current"
+    assert rec["first_certified"] == "2021-06-19"
+    assert rec["certification_expires"] == "2028-10-30"
+    assert len(rec["source_fields"]["certification_terms"]) == 3
+
+
+def test_ct_merges_a_firm_registered_under_two_vendor_ids():
+    # The state re-registered the same firm: same name/address, new vendorId.
+    csv_text = _make_ct_csv([
+        _ct_row(vendorname="Twice Co", vendor_id="BBB", status="Certified",
+                active="2026-01-22", expires="2028-01-21"),
+        _ct_row(vendorname="Twice Co", vendor_id="AAA", status="Expired",
+                active="2021-09-20", expires="2023-09-21"),
+        _ct_row(vendorname="Twice Co", vendor_id="BBB", status="Expired",
+                active="2021-09-20", expires="2023-09-21"),
+        # a different firm that merely shares a name at another address stays separate
+        _ct_row(vendorname="Twice Co", vendor_id="CCC", street="9 Other Rd", zipcode="06001"),
+    ])
+    with patch("requests.get", return_value=_ct_response(csv_text)):
+        records = CtDasSmbeAdapter().run()
+    assert sorted(r["source_business_id"] for r in records) == ["AAA", "CCC"]
+
+
+def test_ct_firm_with_only_expired_terms_is_kept_as_former():
+    csv_text = _make_ct_csv([
+        _ct_row(vendorname="Lapsed Co", vendor_id="V9", status="Expired",
+                active="2020-01-01", expires="2022-01-01"),
+        _ct_row(vendorname="Lapsed Co", vendor_id="V9", status="Expired",
+                active="2022-02-01", expires="2024-02-01"),
+    ])
+    with patch("requests.get", return_value=_ct_response(csv_text)):
+        records = CtDasSmbeAdapter().run()
+    assert len(records) == 1
+    assert records[0]["certification_status"] == "former"
+    assert records[0]["certification_expires"] == "2024-02-01"
+
+
+def test_ct_keeps_goods_and_services_from_an_older_term_when_newest_is_blank():
+    csv_text = _make_ct_csv([
+        _ct_row(vendorname="Co", vendor_id="V3", status="Expired", active="2024-01-01",
+                expires="2025-01-01", gs_code="", goods="", product=""),
+        _ct_row(vendorname="Co", vendor_id="V3", status="Expired", active="2022-01-01",
+                expires="2024-01-01", gs_code="541330", goods="Engineering", product="Surveys"),
+    ])
+    with patch("requests.get", return_value=_ct_response(csv_text)):
+        rec = CtDasSmbeAdapter().run()[0]
+    assert rec["naics_code"] == "541330" and rec["industry"] == "Engineering"
 
 
 def test_ct_empty_when_no_black_american():
@@ -2368,3 +2437,66 @@ def test_public_db_normalizes_state_codes(tmp_path):
     # the working DB keeps the raw value
     raw = open_db(src).execute("SELECT address_state FROM businesses WHERE business_id='a'").fetchone()[0]
     assert raw == "Maryland"
+
+
+# ── one-time CT term merge ───────────────────────────────────────────────────
+
+def test_merge_ct_terms_collapses_rows_without_removing_any_firm(tmp_path):
+    from pipeline.merge_ct_terms import merge_ct_terms
+    con = open_db(tmp_path / "w.duckdb")
+    # firm V1 holds 3 ids (one per term) in Q4 and 2 in Q2; firm V2 has one; "Ghost Co"
+    # is no longer in the live source.
+    for bid, snap, name in [("a1", "2026-Q4", "Renewing Co"), ("a2", "2026-Q4", "Renewing Co"),
+                            ("a3", "2026-Q4", "Renewing Co"), ("a1", "2026-Q2", "Renewing Co"),
+                            ("a2", "2026-Q2", "Renewing Co"), ("b1", "2026-Q4", "Other Co"),
+                            ("g1", "2026-Q4", "Ghost Co")]:
+        write_businesses(con, [_make_record(
+            business_id=bid, business_name=name, source_id="ct_das_smbe",
+            address_street="1 Main St", address_zip="06106")], snap)
+    for bid, name in [("a1", "Renewing Co"), ("a2", "Renewing Co"), ("a3", "Renewing Co"),
+                      ("b1", "Other Co"), ("g1", "Ghost Co")]:
+        con.execute("INSERT INTO business_registry VALUES (?,?,?,?,?,?,?,?)",
+                    [bid, name.lower(), "06106", "ct_das_smbe", "", "2026-Q2", "2026-Q4", True])
+    raw = [_ct_row(vendorname="Renewing Co", vendor_id="V1", street="1 Main St", zipcode="06106",
+                   status="Certified", active="2026-01-01", expires="2028-01-01"),
+           _ct_row(vendorname="Renewing Co", vendor_id="V1", street="1 Main St", zipcode="06106",
+                   status="Expired", active="2022-01-01", expires="2024-01-01"),
+           _ct_row(vendorname="Other Co", vendor_id="V2", street="1 Main St", zipcode="06106",
+                   status="Expired", active="2020-01-01", expires="2022-01-01")]
+    out = merge_ct_terms(con, raw_rows=raw)
+    assert out["rows_before"] == 7 and out["rows_after"] == 4 and out["unmatched"] == 1
+    q4 = dict(con.execute(
+        "SELECT business_name, certification_status FROM businesses WHERE snapshot_id='2026-Q4'"
+    ).fetchall())
+    assert q4 == {"Renewing Co": "current", "Other Co": "former", "Ghost Co": ""}
+    assert con.execute("SELECT COUNT(*) FROM businesses WHERE snapshot_id='2026-Q2'").fetchone()[0] == 1
+    assert con.execute("SELECT COUNT(*) FROM business_registry").fetchone()[0] == 3
+    assert con.execute("SELECT COUNT(*) FROM merged_records").fetchone()[0] == 2
+    assert con.execute(
+        "SELECT source_business_id FROM business_registry WHERE business_id='b1'"
+    ).fetchone()[0] == "V2"
+    # idempotent
+    assert merge_ct_terms(con, raw_rows=raw)["merged"] == 0
+
+
+def test_public_db_accepts_a_source_db_that_predates_status_columns(tmp_path):
+    import duckdb as _d
+    from pipeline.public_db import build_public_db
+    src = tmp_path / "old.duckdb"
+    con = _d.connect(str(src))
+    con.execute("CREATE TABLE sources (source_id VARCHAR, source_name VARCHAR, program VARCHAR, geography VARCHAR, confidence VARCHAR, first_ingested DATE)")
+    con.execute("CREATE TABLE snapshots (snapshot_id VARCHAR, run_date DATE, records_added INTEGER, records_dropped INTEGER, sources_run VARCHAR, sources_failed VARCHAR, sources_carried_forward VARCHAR)")
+    con.execute("CREATE TABLE business_registry (business_id VARCHAR, canonical_name VARCHAR, canonical_zip VARCHAR, source_id VARCHAR, source_business_id VARCHAR, first_seen VARCHAR, last_seen VARCHAR, is_active BOOLEAN)")
+    con.execute("CREATE TABLE field_catalog (source_id VARCHAR, source_field_name VARCHAR, normalized_to VARCHAR, coverage_pct FLOAT)")
+    cols = ("business_id snapshot_id source_id source_business_id confidence business_name owner_name "
+            "year_founded address_street address_city address_state address_zip latitude longitude "
+            "industry naics_code certification description website phone email instagram_handle "
+            "facebook_url tiktok_handle yelp_url google_maps_url discloses_google_maps discloses_yelp "
+            "discloses_instagram data_source last_verified source_fields").split()
+    con.execute("CREATE TABLE businesses (" + ", ".join(f"{c} VARCHAR" for c in cols) + ")")
+    con.execute("INSERT INTO businesses VALUES (" + ",".join(["'x'"] * len(cols)) + ")")
+    con.close()
+    dest = tmp_path / "public.duckdb"
+    build_public_db(src, dest)
+    row = open_db(dest).execute("SELECT business_name, certification_status FROM businesses").fetchone()
+    assert row == ("x", None)

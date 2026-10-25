@@ -385,7 +385,7 @@
   }
 
   // ── Table ──────────────────────────────────────────────────────────────────
-  var EXPANDED_COLS = [6, 7, 8, 9, 10];
+  var EXPANDED_COLS = [6, 7, 8, 9, 10, 11];
   function initTable(rows) {
     table = $('#business-table').DataTable({
       data: rows, pageLength: 25, lengthChange: false, autoWidth: false, dom: 'tip',
@@ -408,6 +408,8 @@
         { data: 'confidence',     title: 'Confidence',    orderable: false,
           render: function (data) { return confidenceBadge(data); } },
         { data: 'naics_code',     title: 'NAICS',         defaultContent: '—' },
+        { data: 'certification_status', title: 'Cert. status', defaultContent: '—',
+          render: function (data) { return data === 'current' ? 'Current' : data === 'former' ? 'Former' : '—'; } },
         { data: 'description',    title: 'Description',   defaultContent: '—',
           render: function (data) { return !data ? '—' : escHtml(data.length > 150 ? data.substring(0,150) + '…' : data); } }
       ]
@@ -501,13 +503,19 @@
         });
 
         // Stat counts
+        // Headline counts firms that are currently certified or come from a source with
+        // no status field; formerly certified firms stay in the data and the table.
+        var formerCount = allRows.filter(function (r) { return r.certification_status === 'former'; }).length;
+        var headlineCount = allRows.length - formerCount;
         var countEl = document.getElementById('stat-count');
-        if (countEl) countEl.textContent = allRows.length.toLocaleString();
+        if (countEl) countEl.textContent = headlineCount.toLocaleString();
+        var formerEl = document.getElementById('former-count');
+        if (formerEl) formerEl.textContent = formerCount.toLocaleString();
         var n = Object.keys(coveredStates).length;
         var coverageEl = document.getElementById('stat-coverage');
         if (coverageEl) coverageEl.textContent = n + ' State' + (n !== 1 ? 's' : '');
 
-        updateCoverageBar(allRows.length);
+        updateCoverageBar(headlineCount);
 
         // Push dots and coverage to map.
         // Strategy: if the map style is already loaded push immediately,
