@@ -2118,6 +2118,35 @@ def test_b2gnow_csv_maps_fields_strips_zip_tab_and_owner(tmp_path):
     assert rec["email"] == "pat@black.co"
 
 
+def test_b2gnow_csv_decodes_windows_1252_apostrophe(tmp_path):
+    # Byte 0x92 is a curly apostrophe in cp1252 but a C1 control character in latin-1.
+    text = _make_dir_csv("Certified Directory", _B2_HEADERS, [
+        _b2_row(name="Mary\u2019s Black Co", ethnicity="Black"),
+    ])
+    p = tmp_path / "Houston test Directory.csv"
+    p.write_bytes(text.encode("cp1252"))
+    rec = HoustonOboAdapter(file_path=p).run()[0]
+    assert rec["business_name"] == "Mary\u2019s Black Co"
+
+
+def test_b2gnow_csv_survives_undefined_cp1252_byte(tmp_path):
+    text = _make_dir_csv("Certified Directory", _B2_HEADERS, [
+        _b2_row(name="Black Co", ethnicity="Black"),
+    ])
+    p = tmp_path / "Houston test Directory.csv"
+    p.write_bytes(text.encode("cp1252") + b"\x81")  # 0x81 is undefined in cp1252
+    assert HoustonOboAdapter(file_path=p).run()[0]["business_name"] == "Black Co"
+
+
+def test_b2gnow_csv_keeps_same_name_at_two_addresses(tmp_path):
+    text = _make_dir_csv("Certified Directory", _B2_HEADERS, [
+        _b2_row(name="Black Co", paddr="1 A St", ethnicity="Black"),
+        _b2_row(name="Black Co", paddr="2 B St", ethnicity="Black"),
+    ])
+    p = _write_latin1(tmp_path, "Houston test Directory.csv", text)
+    assert len(HoustonOboAdapter(file_path=p).run()) == 2
+
+
 def test_b2gnow_csv_dedups_on_company_and_physical_address(tmp_path):
     text = _make_dir_csv("Certified Directory", _B2_HEADERS, [
         _b2_row(name="Black Co", paddr="1 A St", ethnicity="Black"),
@@ -2318,3 +2347,24 @@ def test_public_db_has_no_contact_data_anywhere_in_the_file(tmp_path):
     assert con.execute("SELECT count(*) FROM snapshots").fetchone()[0] == 1
     # the working DB is untouched
     assert b"CANARYOWNER" in src.read_bytes()
+
+
+def test_public_db_normalizes_state_codes(tmp_path):
+    from pipeline.public_db import build_public_db
+    src = tmp_path / "work.duckdb"
+    con = open_db(src)
+    write_businesses(con, [
+        _make_record(business_id="a", business_name="A", source_id="s", address_state="Maryland"),
+        _make_record(business_id="b", business_name="B", source_id="s", address_state="md"),
+        _make_record(business_id="c", business_name="C", source_id="s", address_state="So"),
+    ], "2026-Q2")
+    write_snapshot_meta(con, "2026-Q2", 3, 0, ["s"], [])
+    con.execute("CHECKPOINT"); con.close()
+    dest = tmp_path / "public.duckdb"
+    build_public_db(src, dest)
+    con = open_db(dest)
+    got = dict(con.execute("SELECT business_id, address_state FROM businesses").fetchall())
+    assert got == {"a": "MD", "b": "MD", "c": ""}
+    # the working DB keeps the raw value
+    raw = open_db(src).execute("SELECT address_state FROM businesses WHERE business_id='a'").fetchone()[0]
+    assert raw == "Maryland"

@@ -15,7 +15,7 @@ manual-capture sources (a human downloads the full directory; the pipeline reads
 whatever file is present and carries the source forward on quarters with no file).
 
 Two export shapes are produced by the platform and both are handled here:
-  1. CSV  — latin-1, a title/preamble precedes a header row located dynamically
+  1. CSV  — Windows-1252 (cp1252), a title/preamble precedes a header row located dynamically
             by a marker column; duplicate City/State/Zip columns (physical +
             mailing) collapse to the first occurrence (physical address).
   2. ".xls" that is actually HTML — a single <table> whose first <tr> is the
@@ -154,14 +154,21 @@ class _TableExtractor(HTMLParser):
             self._done = True   # first table only
 
 
+# The platform exports Windows-1252, not ISO-8859-1: curly quotes and apostrophes
+# (byte 0x92 etc.) decode to control characters under latin-1. cp1252 leaves five
+# bytes undefined (0x81, 0x8D, 0x8F, 0x90, 0x9D), so undecodable bytes become U+FFFD
+# instead of aborting the whole file.
+_ENCODING = "cp1252"
+
+
 def read_b2gnow_rows(path) -> list[list]:
     """Return rows (list of lists of strings) from a B2Gnow CSV or HTML('.xls') export."""
     head = open(path, "rb").read(256).lower()
     if b"<table" in head or b"<tr" in head or b"<strong" in head or b"<html" in head:
         parser = _TableExtractor()
-        parser.feed(open(path, encoding="latin-1").read())
+        parser.feed(open(path, encoding=_ENCODING, errors="replace").read())
         return parser.rows
-    with open(path, encoding="latin-1", newline="") as f:
+    with open(path, encoding=_ENCODING, errors="replace", newline="") as f:
         return list(csv.reader(f))
 
 

@@ -15,6 +15,11 @@ Distinct Ethnicity values observed (2026-06-14 full export, verbatim):
   "Hispanic American" (16), "" (3)
 5,527 Black rows collapse to ~2,224 unique firms (a firm appears once per
 commodity/certification row; deduplicated on company name + physical address).
+
+Dedup key (decision 2026-10-25): company name + physical address, which yields 2,224
+firms. Name alone would yield 2,210; the 14-firm difference is the same company name
+at more than one address (separate locations). Treat 2,224 as firm-locations in the
+program record, not as a claim of 2,224 independent owners.
 """
 import sys
 from pathlib import Path

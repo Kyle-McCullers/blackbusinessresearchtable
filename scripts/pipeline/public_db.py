@@ -6,13 +6,14 @@ file (not an in-place UPDATE: DuckDB can leave old values in freed blocks) with:
   - owner_name / phone / email set NULL
   - source_fields (the raw source row, which holds names, phones, emails) set NULL
   - email addresses cut from website / description / address_street
+  - address_state normalized to 2-letter codes (same rule as the CSV export)
 Usage: python -m pipeline.public_db SRC.duckdb DEST.duckdb
 """
 import sys
 from pathlib import Path
 
 from pipeline.db import open_db
-from pipeline.export import PRIVATE_COLUMNS
+from pipeline.export import PRIVATE_COLUMNS, _STATE_ABBR, _VALID_ABBR
 
 _EMAIL = r"[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}"
 _TABLES = ["sources", "snapshots", "business_registry", "field_catalog"]
@@ -24,6 +25,11 @@ def build_public_db(src: Path, dest: Path) -> None:
     if dest.exists():
         dest.unlink()
     con = open_db(dest)
+    # State normalization as a lookup table, not a Python UDF: DuckDB UDFs need numpy,
+    # which the CI environment does not install. Same rule as export.normalize_state.
+    con.execute("CREATE TEMP TABLE state_map (k VARCHAR, v VARCHAR)")
+    pairs = {**_STATE_ABBR, **{a.lower(): a for a in _VALID_ABBR}}
+    con.executemany("INSERT INTO state_map VALUES (?, ?)", list(pairs.items()))
     con.execute(f"ATTACH '{Path(src)}' AS s (READ_ONLY)")
     for t in _TABLES:
         if t == "snapshots":
@@ -41,6 +47,11 @@ def build_public_db(src: Path, dest: Path) -> None:
     for c in cols:
         if c in PRIVATE_COLUMNS or c == "source_fields":
             exprs.append(f"NULL AS {c}")
+        elif c == "address_state":
+            exprs.append(
+                f"COALESCE((SELECT v FROM state_map WHERE k = lower(regexp_replace("
+                f"trim({c}), '\\s+', ' ', 'g'))), '') AS {c}"
+            )
         elif c == "website":
             exprs.append(
                 f"CASE WHEN regexp_full_match(regexp_replace(trim(website), "
