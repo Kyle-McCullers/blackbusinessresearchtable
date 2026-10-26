@@ -2500,3 +2500,35 @@ def test_public_db_accepts_a_source_db_that_predates_status_columns(tmp_path):
     build_public_db(src, dest)
     row = open_db(dest).execute("SELECT business_name, certification_status FROM businesses").fetchone()
     assert row == ("x", None)
+
+
+# ── coverage declarations ────────────────────────────────────────────────────
+
+def test_every_adapter_declares_coverage():
+    import re
+    from pipeline.coverage import COVERAGE
+    ids = set()
+    for path in Path(__file__).parent.joinpath("adapters").glob("*.py"):
+        m = re.search(r'^\s*SOURCE_ID\s*=\s*"([^"]+)"', path.read_text(), re.M)
+        if m:
+            ids.add(m.group(1))
+    assert ids - set(COVERAGE) == set(), f"add coverage for: {sorted(ids - set(COVERAGE))}"
+    assert all(v[0] in {"statewide", "transportation", "city", "federal"} for v in COVERAGE.values())
+
+
+def test_export_sources_csv_counts_and_retained(tmp_path):
+    from pipeline.coverage import export_sources_csv
+    con = open_db(tmp_path / "w.duckdb")
+    con.execute("INSERT INTO sources VALUES ('ct_das_smbe','CT','MBE','Connecticut','confirmed_black','2026-06-10')")
+    write_businesses(con, [
+        _make_record(business_id="a", business_name="A", source_id="ct_das_smbe",
+                     last_verified="2026-10-16", certification_status="current"),
+        _make_record(business_id="b", business_name="B", source_id="ct_das_smbe",
+                     last_verified="2026-06-10", certification_status="former"),
+    ], "2026-Q4")
+    write_snapshot_meta(con, "2026-Q4", 2, 0, ["ct_das_smbe"], [])
+    out = tmp_path / "sources.csv"
+    export_sources_csv(con, out, "2026-Q4")
+    row = list(csv.DictReader(open(out)))[0]
+    assert (row["scope"], row["state"], row["records"], row["former_records"]) == ("statewide", "CT", "2", "1")
+    assert row["last_observed"] == "2026-10-16"

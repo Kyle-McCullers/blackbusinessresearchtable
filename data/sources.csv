@@ -1,0 +1,25 @@
+source_id,source_name,program,scope,state,place,records,former_records,retained_records,last_observed
+al_ombe,Alabama OMBE Certified Businesses,OMBE,statewide,AL,,103,0,103,2026-04-03
+ar_mwbe,Arkansas Minority & Women Business Registry,MWBE,statewide,AR,,915,0,915,2026-06-13
+atlanta_aabe,Atlanta Office of Contract Compliance (AABE),MBE,city,GA,Atlanta,866,0,866,2026-06-14
+baltimore_mwboo,Baltimore MWBOO,MWBE,city,MD,Baltimore,661,0,661,2026-06-14
+ca_mbe,California DGS Certified MBE (2026 snapshot),MBE,statewide,CA,,959,0,959,2026-06-13
+chicago_mwbe,Chicago M/W/DBE,MWBE,city,IL,Chicago,1811,0,1811,2026-06-14
+ct_das_smbe,Connecticut DAS Supplier Diversity,MBE,statewide,CT,,516,194,147,2026-10-16
+dc_ucp,DC UCP DBE,DBE,transportation,DC,,1796,0,1796,2026-06-14
+de_osd,Delaware Office of Supplier Diversity,MWBE,statewide,DE,,335,0,0,2026-10-16
+fl_mbe,Florida OSD Certified MBE (African American),MBE,statewide,FL,,1898,0,1898,2026-06-13
+hawaii_dbe,Hawaii DOT DBE,DBE,transportation,HI,,11,0,11,2026-06-14
+houston_obo,Houston Office of Business Opportunity MWBE,MWBE,city,TX,Houston,2224,0,2224,2026-06-14
+in_idoa,Indiana IDOA Diversity Certified Businesses,MBE,statewide,IN,,627,0,627,2026-06-10
+ma_sdo,Massachusetts SDO MBE Directory,MBE,statewide,MA,,593,0,593,2025-09-09
+md_mbe,Maryland MBE Program,MBE,statewide,MD,,5403,0,5403,2026-04-03
+nc_hub,North Carolina HUB,HUB,statewide,NC,,3615,0,3615,2026-06-13
+nv_dbe,Nevada NDOT DBE,DBE,transportation,NV,,113,0,113,2026-06-11
+nyc_mwbe,NYC MWBE Directory 2025,MWBE,city,NY,New York City,3775,0,3775,2025-09-09
+or_cobid,Oregon COBID Certified Firms,MBE,statewide,OR,,285,0,285,2026-06-11
+pa_ucp_dbe,Pennsylvania UCP DBE,DBE,transportation,PA,,592,0,592,2026-06-14
+sam_8a,SAM.gov 8(a) Certified Businesses,8(a),federal,,,0,0,0,
+sc_smbcc,South Carolina SMBCC,MBE,statewide,SC,,458,0,458,2026-06-10
+tx_hub,Texas HUB Program (Historical),HUB,statewide,TX,,4074,0,4074,2026-04-03
+va_swam,Virginia SWaM/DBE,SWaM,statewide,VA,,4844,0,4844,2026-06-14

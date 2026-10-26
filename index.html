@@ -3,166 +3,280 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="A public database of Black-owned businesses in the United States, built from public MWBE records and open data sources. Designed for researchers, journalists, and policymakers.">
+  <meta name="description" content="A research database of Black-owned businesses in the United States, built from public certification records. Explore the map, download the data, and see exactly what is and is not covered.">
   <title>Black Business Research Table</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;1,500&family=Source+Sans+3:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-  <!-- ── Nav ─────────────────────────────────────────────────────────────── -->
-  <nav id="nav">
+  <a class="skip-link" href="#explore">Skip to the map</a>
+
+  <!-- ── Header ──────────────────────────────────────────────────────────── -->
+  <header id="nav">
     <div class="nav-inner">
-      <span class="nav-title">Black Business Research Table</span>
-      <div class="nav-links">
-        <a href="#about">About</a>
-        <a href="#map-section">Map</a>
+      <a class="nav-title" href="#top">Black Business<br>Research Table</a>
+      <nav class="nav-links" aria-label="Main">
+        <a href="#explore">Explore</a>
         <a href="#data">Data</a>
-        <a href="#access" class="nav-cta">Request Dataset →</a>
-      </div>
+        <a href="#coverage">Coverage &amp; methods</a>
+        <a href="#suggest">Suggest a business</a>
+        <a href="#access" class="nav-cta">Request data</a>
+      </nav>
     </div>
-  </nav>
+  </header>
 
-  <!-- ── About ────────────────────────────────────────────────────────────── -->
-  <section id="about">
-    <div class="section-inner">
-      <div class="section-label">About</div>
-      <h1>The Black Business Research Table</h1>
-      <p class="about-text">
-        A public database of Black-owned businesses in the United States, built from public records,
-        city and state MWBE listings, and open data sources. It is designed for researchers, journalists,
-        policymakers, and anyone who wants to understand the landscape of Black-owned enterprise in America.
-      </p>
-      <p class="about-text">
-        The database is free to access — download the current snapshot (CSV + codebook) directly from the data
-        table below, or request the full longitudinal research panel via the form. Please cite the database as:
-        McCullers, K. (2026). <em>Black Business Research Table</em> [Database].
-        Retrieved from blackbusinessresearchtable.com.
-      </p>
+  <!-- ── Hero ────────────────────────────────────────────────────────────── -->
+  <section id="top" class="hero">
+    <div class="hero-inner">
+      <h1 class="hero-title"><span>The Black Business</span><span class="hl">Research Table</span></h1>
+      <p class="hero-sub">Mapping Black-owned businesses in public records across the U.S.</p>
+
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <p>Where do public programs list Black-owned businesses, and where are the gaps? Which industries do they work in, and how does that change over time?</p>
+          <p>The Research Table brings certification records from state, city and transportation programs into one panel, so researchers, journalists and policymakers can see both what is there and what is missing. Contact details are withheld from the public download and released to verified researchers on request.</p>
+        </div>
+        <div class="hero-actions">
+          <div class="eyebrow">Explore the data</div>
+          <a class="card card-primary" href="#explore"><span class="card-kicker">Interactive map</span><span class="card-title">Explore the map</span><span class="card-arrow" aria-hidden="true">›</span></a>
+          <a class="card" href="#data"><span class="card-kicker">CSV &middot; codebook &middot; research panel</span><span class="card-title">Get the data</span><span class="card-arrow" aria-hidden="true">›</span></a>
+          <a class="card" href="#coverage"><span class="card-kicker">What is covered, and what isn't</span><span class="card-title">Coverage &amp; methods</span><span class="card-arrow" aria-hidden="true">›</span></a>
+        </div>
+      </div>
+
       <div class="stats">
-        <div class="stat">
-          <div class="stat-number" id="stat-count">—</div>
-          <div class="stat-label">Businesses</div>
-        </div>
-        <div class="stat">
-          <div class="stat-number" id="stat-coverage">—</div>
-          <div class="stat-label">Coverage</div>
-        </div>
-        <div class="stat">
-          <div class="stat-number">2026</div>
-          <div class="stat-label">Data Year</div>
-        </div>
+        <div class="stat"><div class="stat-number" id="stat-count">—</div><div class="stat-label">Businesses</div></div>
+        <div class="stat"><div class="stat-number" id="stat-programs">—</div><div class="stat-label">Public programs</div></div>
+        <div class="stat"><div class="stat-number" id="stat-jurisdictions">—</div><div class="stat-label">Jurisdictions with a program</div></div>
+        <div class="stat"><div class="stat-number" id="stat-asof">—</div><div class="stat-label">Latest snapshot</div></div>
       </div>
-      <p class="stat-footnote">The Businesses count covers firms that are currently certified, plus firms from sources that do not report certification status. A further <span id="former-count">—</span> firms were certified in the past and are kept in the data (see the <code>certification_status</code> column); including them gives a larger total. Certification records show whether a program lists a firm, not whether the business exists or operates, so a lapsed certification is not evidence that a firm has closed.</p>
+      <p class="stat-footnote" id="stat-footnote">Loading counts…</p>
     </div>
   </section>
 
-  <!-- ── Map ──────────────────────────────────────────────────────────────── -->
-  <section id="map-section">
-    <div class="section-inner">
-      <div class="section-label">Map</div>
-      <div id="map">
-        <!-- Legend overlay (bottom-right, sits above the GL canvas) -->
-        <div class="map-legend">
-          <div class="legend-title">Legend</div>
-          <div class="legend-row"><span class="legend-dot" style="background:#1B4332;"></span>Confirmed Black-owned</div>
-          <div class="legend-row"><span class="legend-dot" style="background:#9a9a9a;"></span>MBE — unverified</div>
-          <div class="legend-row"><span class="legend-swatch legend-covered"></span>Source incorporated</div>
-          <div class="legend-row"><span class="legend-swatch legend-uncovered"></span>Not yet covered</div>
+  <!-- ── Explorer ────────────────────────────────────────────────────────── -->
+  <section id="explore" class="explorer" aria-label="Interactive map">
+    <aside class="sidebar" id="sidebar">
+      <div class="sb-head">
+        <div class="sb-title">Explore the map</div>
+        <button class="sb-help" id="btn-guide" type="button" aria-label="Show the quick guide">?</button>
+      </div>
+      <div class="sb-block sb-selected" id="selected-panel" hidden></div>
+
+      <div class="sb-block">
+        <label class="sb-step" for="place-search"><span class="step-n">1</span> Where</label>
+        <form id="place-form" class="search-row" role="search">
+          <input id="place-search" type="search" placeholder="Search a city, ZIP or address" autocomplete="off">
+          <button type="submit" aria-label="Search">Go</button>
+        </form>
+        <div class="sb-note" id="place-note"></div>
+      </div>
+
+      <div class="sb-block">
+        <div class="sb-step"><span class="step-n">2</span> What</div>
+        <div class="seg" role="group" aria-label="Map layer">
+          <button type="button" id="layer-counties" class="seg-btn active">Firms by county</button>
+          <button type="button" id="layer-dots" class="seg-btn">Individual firms</button>
         </div>
       </div>
-      <p class="map-caption">Click any dot for business details. Click a covered state to filter. Businesses without a geocoded address appear in the data table below but not on the map.</p>
+
+      <div class="sb-block">
+        <div class="sb-step"><span class="step-n">3</span> Who</div>
+        <label class="sb-label" for="filter-status">Certification</label>
+        <select id="filter-status" class="field">
+          <option value="headline">Currently certified, or source has no status</option>
+          <option value="all">Include formerly certified</option>
+          <option value="former">Formerly certified only</option>
+        </select>
+        <label class="sb-label" for="filter-scope">Listed by</label>
+        <select id="filter-scope" class="field">
+          <option value="">Any program</option>
+          <option value="statewide">Statewide programs</option>
+          <option value="transportation">Transportation (DBE) directories</option>
+          <option value="city">City programs</option>
+        </select>
+        <label class="sb-label" for="filter-state">State where the business is based</label>
+        <select id="filter-state" class="field"><option value="">All states</option></select>
+        <label class="sb-label" for="table-search">Name, city or industry</label>
+        <input type="search" id="table-search" class="field" placeholder="e.g. construction, Atlanta">
+      </div>
+
+      <div class="sb-result" aria-live="polite">
+        <div class="sb-result-n" id="result-n">—</div>
+        <div class="sb-result-l" id="result-l">businesses match</div>
+        <div class="sb-result-sub" id="result-sub"></div>
+      </div>
+
+
+      <div class="sb-foot">
+        <a class="sb-tool" href="data/businesses.csv" download>Download<br>the data</a>
+        <button class="sb-tool" id="btn-image" type="button">Save map<br>image</button>
+        <a class="sb-tool" href="#coverage">Methods &amp;<br>coverage</a>
+      </div>
+    </aside>
+
+    <div class="map-wrap">
+      <div id="map" aria-label="Map of Black-owned businesses listed in public records"></div>
+      <div class="map-loading" id="map-loading">Loading map and data…</div>
+      <div class="map-legend" id="map-legend">
+        <div class="legend-head">
+          <span class="legend-title" id="legend-title">Businesses per county</span>
+          <span class="legend-scale">Color scale:
+            <button type="button" class="link-btn active" id="scale-national">National</button>
+            <button type="button" class="link-btn" id="scale-screen">On screen</button>
+          </span>
+        </div>
+        <div class="legend-ramp" id="legend-ramp"></div>
+        <div class="legend-keys">
+          <span class="key"><i class="sw sw-none"></i>None listed</span>
+          <span class="key"><i class="sw sw-nosrc"></i>No program yet</span>
+          <span class="key"><i class="ln ln-state"></i>Statewide program</span>
+          <span class="key"><i class="ln ln-dot"></i>Transportation only</span>
+          <span class="key"><i class="ln ln-city"></i>City only</span>
+        </div>
+      </div>
     </div>
   </section>
 
-  <!-- ── Data ─────────────────────────────────────────────────────────────── -->
-  <section id="data">
-    <div class="section-inner">
+  <!-- ── Data ────────────────────────────────────────────────────────────── -->
+  <section id="data" class="band">
+    <div class="band-inner">
       <div class="section-label">Data</div>
-      <div class="coverage-bar-wrap">
-        <div class="coverage-bar-header">
-          <span class="coverage-bar-label">Database Coverage</span>
-          <span class="coverage-bar-pct" id="coverage-pct">—</span>
+      <h2>Browse and download</h2>
+      <p class="lede">The table follows the filters in the map panel. Default view shows one record per listing; the <strong>Expanded</strong> view adds address, certification status and description. Contact fields (owner name, phone, email) are not in the public download; they are released to verified researchers on request, for research use only. Write to <a href="mailto:data@blackbusinessresearchtable.com">data@blackbusinessresearchtable.com</a> with your affiliation and purpose; we respond within 10 business days.</p>
+      <div class="table-actions">
+        <div class="toggle-group">
+          <button id="btn-default" class="toggle-btn active" type="button">Default</button>
+          <button id="btn-expanded" class="toggle-btn" type="button">Expanded</button>
         </div>
-        <div class="coverage-bar-track">
-          <div class="coverage-bar-fill" id="coverage-fill" style="width:0%"></div>
-        </div>
-        <div class="coverage-bar-note" id="coverage-note">of an estimated 160,000 Black-owned employer businesses in the U.S. (2021 Census Annual Business Survey)</div>
+        <span id="result-count" class="result-count"></span>
+        <a href="data/businesses.csv" download class="btn-secondary">↓ Download CSV</a>
+        <a href="data/codebook.csv" download class="btn-secondary">↓ Codebook</a>
+        <a href="data/sources.csv" download class="btn-secondary">↓ Sources</a>
       </div>
-      <div class="table-controls">
-        <div class="filter-row">
-          <select id="filter-state" class="filter-select"><option value="">All states</option></select>
-          <select id="filter-city" class="filter-select" disabled><option value="">All cities</option></select>
-          <input type="search" id="table-search" placeholder="Search by name, city, or industry…">
-          <span id="result-count" class="result-count"></span>
-        </div>
-        <div class="table-actions">
-          <div class="toggle-group">
-            <button id="btn-default" class="toggle-btn active">Default</button>
-            <button id="btn-expanded" class="toggle-btn">Expanded</button>
-          </div>
-          <a href="data/businesses.csv" download class="btn-secondary">↓ Download CSV</a>
-          <a href="data/codebook.csv" download class="btn-secondary">↓ Codebook</a>
-        </div>
-      </div>
-      <p class="access-intro" style="margin:12px 0 16px;max-width:none">Contact fields (owner name, phone, email) are not in the public download. They are released to verified researchers on request, for research use only: write to <a href="mailto:data@blackbusinessresearchtable.com">data@blackbusinessresearchtable.com</a> with your affiliation and purpose. We respond within 10 business days.</p>
       <table id="business-table" class="display"></table>
     </div>
   </section>
 
-  <!-- ── Access ───────────────────────────────────────────────────────────── -->
-  <section id="access">
-    <div class="section-inner">
-      <div class="section-label">Request Dataset</div>
-      <h2>Request the Full Research Panel</h2>
-      <p class="access-intro">The current snapshot is free to download right now — use the <strong>Download CSV</strong> and <strong>Codebook</strong> buttons above the data table. To receive the full longitudinal panel (every quarterly snapshot plus the DuckDB research database), tell us who you are and how you'll use it.</p>
-      <form id="dataset-form" action="https://formspree.io/f/xqeolrkw" method="POST">
-        <div class="form-group">
-          <label for="req-name">Name</label>
-          <input type="text" id="req-name" name="name" placeholder="Your full name" required>
-        </div>
-        <div class="form-group">
-          <label for="req-affiliation">Affiliation</label>
-          <input type="text" id="req-affiliation" name="affiliation" placeholder="University, organization, or independent" required>
-        </div>
-        <div class="form-group">
-          <label for="req-use">Intended Use</label>
-          <textarea id="req-use" name="intended_use" placeholder="Brief description of how you plan to use the data" required></textarea>
-        </div>
-        <button type="submit" class="btn-primary">Submit Request →</button>
-      </form>
-      <div id="form-success" class="form-success" style="display:none">
-        <p>Thanks — your request is recorded. Download the full research panel:</p>
-        <a href="https://github.com/Kyle-McCullers/blackbusinessresearchtable/releases/latest/download/bbrt.duckdb" class="btn-primary">↓ DuckDB research panel</a>
-        <a href="data/businesses.csv" download class="btn-secondary">↓ Current snapshot CSV</a>
+  <!-- ── Coverage & methods ─────────────────────────────────────────────── -->
+  <section id="coverage" class="band band-alt">
+    <div class="band-inner">
+      <div class="section-label">Coverage &amp; methods</div>
+      <h2>What this database covers, and what it doesn't</h2>
+      <p class="lede" id="coverage-lede">Loading…</p>
+
+      <div class="callout-grid">
+        <div class="callout"><h3>Coverage is defined by programs, not by where firms are based</h3><p id="coverage-defn"></p></div>
+        <div class="callout"><h3>Records are not the same as firms</h3><p>The headline counts listings in public programs. A firm certified by two programs appears twice, and a firm with several locations may appear more than once. A deduplicated one-row-per-firm file is in development; until then treat counts as listings.</p></div>
+        <div class="callout"><h3>Certification is not existence</h3><p>A lapsed certification shows that a program no longer lists a firm, not that the business closed. Formerly certified firms stay in the data, flagged in <code>certification_status</code>, and are left out of the headline count. A business that has been recorded is never removed.</p></div>
+        <div class="callout"><h3>Who this leaves out</h3><p>Public certification records over-represent firms that sell to governments and under-represent informal, home-based and online-only businesses. States with no program here are gaps, not evidence that no Black-owned businesses exist there.</p></div>
       </div>
-      <div class="citation-block">
-        <div class="citation-label">How to Cite</div>
-        <div class="citation-text">
-          McCullers, K. (2026). <em>Black Business Research Table</em> [Database].
-          Retrieved from blackbusinessresearchtable.com.
-        </div>
+
+      <h3 class="tbl-h">Sources</h3>
+      <div class="tbl-wrap"><table class="plain" id="sources-table">
+        <thead><tr><th>Program</th><th>Covers</th><th>Type</th><th class="num">Records</th><th>Last observed</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <p class="fine">“Last observed” is the most recent date a record from that program was seen in the program's own directory. Programs delivered as manual files, or whose directory could not be read in the latest run, keep their earlier records and show an earlier date; absence from a directory is never treated as a business closing.</p>
+
+      <div class="method-links">
+        <a class="btn-secondary" href="data/codebook.csv" download>Codebook</a>
+        <a class="btn-secondary" href="https://github.com/Kyle-McCullers/blackbusinessresearchtable/blob/main/DECISIONS.md" target="_blank" rel="noopener">Decision log</a>
+        <a class="btn-secondary" href="https://github.com/Kyle-McCullers/blackbusinessresearchtable" target="_blank" rel="noopener">Code on GitHub</a>
       </div>
     </div>
   </section>
 
-  <!-- ── Footer ───────────────────────────────────────────────────────────── -->
+  <!-- ── Suggest a business ─────────────────────────────────────────────── -->
+  <section id="suggest" class="band">
+    <div class="band-inner narrow">
+      <div class="section-label">Suggest a business</div>
+      <h2>Know a Black-owned business that should be here?</h2>
+      <p class="lede">Public programs miss many firms. Tell us about one and we will check it against public sources before anything is added. Nothing you submit is published automatically, and we do not publish your email.</p>
+      <form id="suggest-form" action="https://formspree.io/f/xqeolrkw" method="POST" class="form">
+        <input type="hidden" name="form_type" value="suggest_business">
+        <input type="text" name="_gotcha" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+        <div class="form-group"><label for="sg-name">Business name</label><input type="text" id="sg-name" name="business_name" required></div>
+        <div class="form-row">
+          <div class="form-group"><label for="sg-city">City</label><input type="text" id="sg-city" name="city" required></div>
+          <div class="form-group"><label for="sg-state">State</label><input type="text" id="sg-state" name="state" maxlength="2" placeholder="e.g. GA" required></div>
+        </div>
+        <div class="form-group"><label for="sg-link">Website or social media link</label><input type="url" id="sg-link" name="link" placeholder="https://"></div>
+        <div class="form-group"><label for="sg-basis">How do you know it is Black-owned?</label>
+          <select id="sg-basis" name="basis" required>
+            <option value="">Choose one</option>
+            <option>I own or co-own it</option>
+            <option>The business says so publicly</option>
+            <option>It is listed in a directory or news article</option>
+            <option>Other</option>
+          </select></div>
+        <div class="form-group"><label for="sg-source">Source or note <span class="opt">(optional)</span></label><textarea id="sg-source" name="source_note" placeholder="Link to the directory or article, or anything that helps us verify"></textarea></div>
+        <div class="form-group"><label for="sg-email">Your email <span class="opt">(optional, only if we may follow up)</span></label><input type="email" id="sg-email" name="email"></div>
+        <button type="submit" class="btn-primary">Send suggestion →</button>
+      </form>
+      <div id="suggest-success" class="form-success" hidden><p>Thank you. We will review the suggestion against public sources.</p></div>
+    </div>
+  </section>
+
+  <!-- ── Access ──────────────────────────────────────────────────────────── -->
+  <section id="access" class="band band-alt">
+    <div class="band-inner narrow">
+      <div class="section-label">Request the research panel</div>
+      <h2>The full longitudinal panel</h2>
+      <p class="lede">The current snapshot is free to download above. To receive the full longitudinal panel (every quarterly snapshot in a DuckDB database), tell us who you are and how you will use it.</p>
+      <form id="dataset-form" action="https://formspree.io/f/xqeolrkw" method="POST" class="form">
+        <input type="hidden" name="form_type" value="dataset_request">
+        <div class="form-group"><label for="req-name">Name</label><input type="text" id="req-name" name="name" required></div>
+        <div class="form-group"><label for="req-affiliation">Affiliation</label><input type="text" id="req-affiliation" name="affiliation" placeholder="University, organization, or independent" required></div>
+        <div class="form-group"><label for="req-use">Intended use</label><textarea id="req-use" name="intended_use" placeholder="Brief description of how you plan to use the data" required></textarea></div>
+        <button type="submit" class="btn-primary">Submit request →</button>
+      </form>
+      <div id="form-success" class="form-success" hidden>
+        <p>Thanks — your request is recorded. Download the research panel:</p>
+        <a href="https://github.com/Kyle-McCullers/blackbusinessresearchtable/releases/latest/download/bbrt.duckdb" class="btn-primary">↓ DuckDB research panel</a>
+        <a href="data/businesses.csv" download class="btn-secondary">↓ Current snapshot CSV</a>
+      </div>
+      <div class="citation-block">
+        <div class="citation-label">How to cite</div>
+        <div class="citation-text">McCullers, K. (2026). <em>Black Business Research Table</em> [Database]. Retrieved from blackbusinessresearchtable.com. Snapshot: <span id="cite-snapshot">—</span>.</div>
+      </div>
+    </div>
+  </section>
+
   <footer>
     <div class="footer-inner">
-      <span>Built and maintained by
-        <a href="https://kylemccullers.com" target="_blank" rel="noopener">Kyle McCullers</a>,
-        PhD Candidate, University of Michigan Ross School of Business</span>
-      <span>Last updated June 2026</span>
+      <span>Built and maintained by <a href="https://kylemccullers.com" target="_blank" rel="noopener">Kyle McCullers</a>, PhD Candidate, University of Michigan Ross School of Business</span>
+      <span id="footer-asof">—</span>
     </div>
   </footer>
+
+  <!-- First-visit guide -->
+  <div class="modal" id="guide" role="dialog" aria-modal="true" aria-labelledby="guide-title" hidden>
+    <div class="modal-card">
+      <button class="modal-close" id="guide-close" type="button" aria-label="Close">×</button>
+      <div class="eyebrow">Quick guide</div>
+      <h2 id="guide-title">Get started in three steps</h2>
+      <p class="lede">Start with a question, for example: <em>where do public programs list Black-owned construction firms near me?</em></p>
+      <div class="steps">
+        <div><h3><span class="step-n">1</span> Where</h3><p>Search a city, ZIP or address to zoom in, or click a county.</p></div>
+        <div><h3><span class="step-n">2</span> What</h3><p>Shade counties by number of listed firms, or switch to individual firms.</p></div>
+        <div><h3><span class="step-n">3</span> Who</h3><p>Filter by certification, program type, state or industry. The table below follows.</p></div>
+      </div>
+      <p class="fine">A light county means few firms are <em>listed</em>, not that few exist. Check the legend for places with no program yet.</p>
+      <button class="btn-primary" id="guide-go" type="button">Start exploring</button>
+    </div>
+  </div>
 
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>
