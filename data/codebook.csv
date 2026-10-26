@@ -1,5 +1,5 @@
 column,description
-business_id,Stable UUID for the business across all quarterly snapshots (panel identifier).
+firm_id,"Stable identifier for a firm: a hash of its normalized name and 5-digit ZIP (or name, city and state where a program publishes no ZIP). One row per firm in this file. Changes only if the firm's name or ZIP changes."
 business_name,Legal or registered business name as listed by the certifying source.
 year_founded,"Year the business was established, where available."
 address_street,Street address.
@@ -21,10 +21,14 @@ google_maps_url,Google Maps URL (reserved).
 discloses_google_maps,Whether the business discloses a Google Maps presence (reserved).
 discloses_yelp,Whether the business discloses a Yelp presence (reserved).
 discloses_instagram,Whether the business discloses an Instagram presence (reserved).
-data_source,Human-readable name of the certifying source/program this record came from.
-last_verified,"Date this record was last observed in the source. A date older than the snapshot date means the record is retained from an earlier quarter and was not re-observed; absence from a source is never treated as a business closing."
+last_verified,Date this record was last observed in the source. A date older than the snapshot date means the record is retained from an earlier quarter and was not re-observed; absence from a source is never treated as a business closing.
 confidence,confirmed_black = source has an explicit Black/African American ethnicity field used to filter; mbe_unverified = source identifies only 'minority-owned' with no ethnicity breakdown.
 certification_status,"current = the source lists a currently valid certification; former = every certification term the source lists has expired; blank = the source reports no status (treat as listed). Populated for Connecticut so far. Headline counts exclude former firms but they remain in the data; certification shows a program lists a firm, not whether the business exists."
 first_certified,Start date of the earliest certification term the source lists (where reported).
 certification_expires,End date of the most recent certification term the source lists (where reported).
+programs,"Public programs that list the firm, semicolon-separated names."
+sources,"Program identifiers (source_id) that list the firm, semicolon-separated; see sources.csv."
+n_listings,Number of program listings merged into this firm row.
+n_sources,Number of distinct programs that list the firm.
+match_basis,"How the firm's listings were matched: name+zip, name+city+state (programs with no ZIP), or single (not matched to any other listing). Similar but different names are not merged; see data/review/firm-near-matches.csv."
 Contact fields,"Owner name, phone and email are not published here; they are released to verified researchers on request (data@blackbusinessresearchtable.com)."

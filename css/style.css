@@ -246,3 +246,6 @@ footer a { color: #fff; }
 .defs { margin-top: 14px; max-width: 860px; font-size: 14.5px; color: var(--ink-soft); }
 .defs dt { font-weight: 700; color: var(--ink); margin-top: 8px; }
 .defs dd { margin: 2px 0 0 0; }
+
+.badge { white-space: nowrap; display: inline-block; }
+.dataTables_wrapper .dataTables_scrollBody { border-bottom: 1px solid var(--line); }

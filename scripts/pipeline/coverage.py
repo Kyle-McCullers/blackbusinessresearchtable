@@ -85,11 +85,19 @@ def export_meta_json(con, output_path: Path, snapshot_id: str) -> dict:
     import json
     run = con.execute("SELECT CAST(run_date AS VARCHAR) FROM snapshots WHERE snapshot_id = ?",
                       [snapshot_id]).fetchone()
-    records, former = con.execute(
+    listings, former_listings = con.execute(
         "SELECT COUNT(*), COUNT(*) FILTER (WHERE certification_status = 'former') "
         "FROM businesses WHERE snapshot_id = ?", [snapshot_id]).fetchone()
+    tables = {r[0] for r in con.execute("SELECT table_name FROM information_schema.tables").fetchall()}
+    firms = former_firms = None
+    if "firms" in tables:
+        firms, former_firms = con.execute(
+            "SELECT COUNT(*), COUNT(*) FILTER (WHERE certification_status = 'former') "
+            "FROM firms WHERE snapshot_id = ?", [snapshot_id]).fetchone()
     meta = {"snapshot_id": snapshot_id, "run_date": run[0] if run else "",
-            "records": records, "former": former, "headline": records - former}
+            "listings": listings, "former_listings": former_listings,
+            "firms": firms, "former_firms": former_firms,
+            "headline": (firms - former_firms) if firms is not None else listings - former_listings}
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(meta, indent=2) + "\n")
     return meta

@@ -12,3 +12,7 @@ data/mbe_frame.duckdb
 data/bbrt.duckdb
 data/disclosure/
 data/public/
+
+# Program-listing level files are published with the Release, not committed (large, change every quarter).
+data/listings.csv
+data/listings.parquet

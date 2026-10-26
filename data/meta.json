@@ -1,7 +1,9 @@
 {
   "snapshot_id": "2026-Q4",
   "run_date": "2026-10-16",
-  "records": 36474,
-  "former": 194,
-  "headline": 36280
+  "listings": 36474,
+  "former_listings": 194,
+  "firms": 33577,
+  "former_firms": 190,
+  "headline": 33387
 }

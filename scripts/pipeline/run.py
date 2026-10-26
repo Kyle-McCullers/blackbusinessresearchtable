@@ -36,6 +36,7 @@ from pipeline.entity_resolver import resolve
 from pipeline.geocoder import batch_geocode
 from pipeline.export import export_csv, write_summary
 from pipeline.coverage import export_sources_csv, export_meta_json, export_parquet
+from pipeline.firms import refresh_all_snapshots, export_firm_files
 
 
 def current_snapshot_id(d: date = None) -> str:
@@ -203,11 +204,18 @@ def run(snapshot_id: str = None) -> None:
                         records_dropped, sources_run, sources_failed,
                         sources_carried_forward=sources_carried)
 
-    print(f"Writing businesses.csv...")
-    export_csv(con, CSV_PATH, snapshot_id)
-    export_sources_csv(con, CSV_PATH.parent / "sources.csv", snapshot_id)
-    export_meta_json(con, CSV_PATH.parent / "meta.json", snapshot_id)
-    export_parquet(CSV_PATH, CSV_PATH.with_suffix(".parquet"))
+    print(f"Building one-row-per-firm tables...")
+    latest = refresh_all_snapshots(con)
+    data_dir = CSV_PATH.parent
+    export_firm_files(latest, data_dir)           # businesses.csv (firms), listings.csv, review/
+    export_sources_csv(con, data_dir / "sources.csv", snapshot_id)
+    export_meta_json(con, data_dir / "meta.json", snapshot_id)
+    export_parquet(data_dir / "businesses.csv", data_dir / "businesses.parquet")
+    export_parquet(data_dir / "listings.csv", data_dir / "listings.parquet")
+    firms_total = len(latest["firms"])
+    firms_headline = sum(1 for f in latest["firms"] if f["certification_status"] != "former")
+    print(f"  {stored} listings -> {firms_total} firms ({firms_headline} in the headline count); "
+          f"{len(latest['near'])} near-matches left for review")
 
     former = con.execute(
         "SELECT COUNT(*) FROM businesses WHERE snapshot_id = ? AND certification_status = 'former'",
@@ -217,7 +225,7 @@ def run(snapshot_id: str = None) -> None:
                   records_dropped, sources_run, sources_failed,
                   sources_carried_forward=sources_carried,
                   records_retained=len(carried), sources_flagged=flagged,
-                  records_former=former)
+                  records_former=former, firms_total=firms_total, firms_headline=firms_headline)
     print(f"Summary: {summary_path}")
 
     con.close()

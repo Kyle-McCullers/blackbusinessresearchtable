@@ -134,6 +134,8 @@ def write_summary(
     records_retained: int = 0,
     sources_flagged: dict = None,
     records_former: int = 0,
+    firms_total: int = 0,
+    firms_headline: int = 0,
 ) -> None:
     """Write a human-readable run report.
 
@@ -145,7 +147,8 @@ def write_summary(
         f"BBRT Quarterly Pipeline — {snapshot_id}",
         f"Run date: {date.today()}",
         f"",
-        f"Records in snapshot: {records_total}",
+        f"Listings in snapshot: {records_total}",
+        f"Firms (listings matched on normalized name + ZIP): {firms_total}; headline count (not formerly certified): {firms_headline}",
         f"  of which formerly certified (kept in the record, excluded from the headline "
         f"count): {records_former}",
         f"Records dropped from prior snapshot: {records_dropped}",

@@ -2543,3 +2543,73 @@ def test_export_parquet_matches_csv(tmp_path):
     export_parquet(src, out)
     rows = _d.connect().execute(f"SELECT business_id, business_name, address_state FROM read_parquet('{out}') ORDER BY 1").fetchall()
     assert rows == [("1", "Acme, LLC", "MD"), ("2", "Beta Co", None)]
+
+
+# ── one row per firm ─────────────────────────────────────────────────────────
+
+def _lst(source, bid, name, zipc="21201", city="Baltimore", state="MD", status="", **kw):
+    d = {c: "" for c in __import__("pipeline.export", fromlist=["EXPORT_COLUMNS"]).EXPORT_COLUMNS}
+    d.update(business_id=bid, source_id=source, business_name=name, address_zip=zipc, address_city=city,
+             address_state=state, certification_status=status, confidence="confirmed_black",
+             data_source=source.upper(), last_verified="2026-10-16")
+    d.update(kw)
+    return d
+
+
+def test_firm_name_key_ignores_legal_form_punctuation_and_case():
+    from pipeline.firms import firm_name_key
+    assert firm_name_key("Acme Builders, L.L.C.") == firm_name_key("ACME BUILDERS LLC") == "acme builders"
+    assert firm_name_key("Smith & Sons Inc.") == firm_name_key("Smith and Sons, Incorporated")
+    assert firm_name_key("Acme Services") != firm_name_key("Acme Group")      # not stripped any more
+
+
+def test_same_name_and_zip_across_sources_is_one_firm():
+    from pipeline.firms import build_firms
+    firms, fmap, _ = build_firms([_lst("md_mbe", "a", "Acme Builders LLC"), _lst("dc_ucp", "b", "ACME BUILDERS, L.L.C."),
+                                  _lst("md_mbe", "c", "Other Co")])
+    assert len(firms) == 2 and len(fmap) == 3
+    acme = next(f for f in firms if "cme" in f["business_name"])
+    assert acme["n_listings"] == 2 and acme["n_sources"] == 2 and acme["sources"] == "dc_ucp;md_mbe"
+
+
+def test_similar_names_in_one_zip_are_not_merged_but_are_listed_for_review():
+    from pipeline.firms import build_firms
+    firms, _, near = build_firms([_lst("md_mbe", "a", "Acme Service"), _lst("dc_ucp", "b", "Acme Services")])
+    assert len(firms) == 2 and len(near) == 1 and near[0]["score"] >= 90
+
+
+def test_firm_status_current_beats_former_and_all_former_is_former():
+    from pipeline.firms import build_firms
+    f, _, _ = build_firms([_lst("ct", "a", "Alpha Co", status="former"), _lst("md", "b", "Alpha Co", status="current"),
+                           _lst("ct", "c", "Beta Co", status="former"), _lst("ct", "d", "Gamma Co", status="former"),
+                           _lst("md", "e", "Gamma Co", status="")])
+    st = {x["business_name"]: x["certification_status"] for x in f}
+    assert st == {"Alpha Co": "current", "Beta Co": "former", "Gamma Co": ""}
+
+
+def test_listings_without_zip_match_on_name_city_state_only_when_unambiguous():
+    from pipeline.firms import build_firms
+    f, fm, _ = build_firms([_lst("md", "a", "Acme Co", zipc="21201"),
+                            _lst("fl", "b", "Acme Co", zipc="", city="Baltimore", state="MD"),
+                            _lst("fl", "c", "Nowhere Co", zipc="", city="", state="")])
+    assert len(f) == 2
+    assert {m["match_basis"] for m in fm} == {"name+zip", "name+city+state", "single"}
+
+
+def test_firm_id_is_stable_and_contact_free():
+    from pipeline.firms import build_firms, FIRM_COLUMNS
+    a, _, _ = build_firms([_lst("md", "a", "Acme Co")])
+    b, _, _ = build_firms([_lst("dc", "zzz", "ACME, LLC")])
+    assert a[0]["firm_id"] == b[0]["firm_id"]
+    assert not {"owner_name", "phone", "email"} & set(FIRM_COLUMNS)
+
+
+def test_write_firm_tables_round_trip(tmp_path):
+    from pipeline.firms import build_firms, write_firm_tables
+    con = open_db(tmp_path / "w.duckdb")
+    firms, fmap, _ = build_firms([_lst("md", "a", "Acme Co"), _lst("dc", "b", "Acme Co")])
+    write_firm_tables(con, "2026-Q4", firms, fmap)
+    write_firm_tables(con, "2026-Q4", firms, fmap)          # idempotent
+    assert con.execute("SELECT COUNT(*) FROM firms").fetchone()[0] == 1
+    assert con.execute("SELECT COUNT(*) FROM firm_map").fetchone()[0] == 2
+    assert con.execute("SELECT n_listings FROM firms").fetchone()[0] == 2

@@ -162,7 +162,7 @@
     <div class="band-inner">
       <div class="section-label">Data</div>
       <h2>Browse and download</h2>
-      <p class="lede">The table follows the filters in the map panel. Default view shows one record per listing; the <strong>Expanded</strong> view adds address, certification status and description. Contact fields (owner name, phone, email) are not in the public download; they are released to verified researchers on request, for research use only. Write to <a href="mailto:data@blackbusinessresearchtable.com">data@blackbusinessresearchtable.com</a> with your affiliation and purpose; we respond within 10 business days.</p>
+      <p class="lede">The table follows the filters in the map panel. Each row is one firm; the <strong>Expanded</strong> view adds address, certification status, description and the programs that list it. Contact fields (owner name, phone, email) are not in the public download; they are released to verified researchers on request, for research use only. Write to <a href="mailto:data@blackbusinessresearchtable.com">data@blackbusinessresearchtable.com</a> with your affiliation and purpose; we respond within 10 business days.</p>
       <div class="table-actions">
         <div class="toggle-group">
           <button id="btn-default" class="toggle-btn active" type="button">Default</button>
@@ -172,6 +172,7 @@
         <a href="data/businesses.csv" download class="btn-secondary">↓ Download CSV</a>
         <a href="data/codebook.csv" download class="btn-secondary">↓ Codebook</a>
         <a href="data/businesses.parquet" download class="btn-secondary">↓ Parquet</a>
+        <a href="https://github.com/Kyle-McCullers/blackbusinessresearchtable/releases/latest/download/listings.parquet" class="btn-secondary">↓ Listings</a>
         <a href="data/sources.csv" download class="btn-secondary">↓ Sources</a>
       </div>
       <table id="business-table" class="display"></table>
@@ -187,14 +188,14 @@
 
       <div class="callout-grid">
         <div class="callout"><h3>Coverage is defined by programs, not by where firms are based</h3><p id="coverage-defn"></p></div>
-        <div class="callout"><h3>Records are not the same as firms</h3><p>The headline counts listings in public programs. A firm certified by two programs appears twice, and a firm with several locations may appear more than once. A deduplicated one-row-per-firm file is in development; until then treat counts as listings.</p></div>
+        <div class="callout"><h3>One row per firm, built from listings</h3><p>Programs publish listings, and many firms appear in more than one program or twice in one. The main file merges listings with the same normalized name and ZIP (or name, city and state where a program publishes no ZIP) into one firm and records which programs list it. Similar but different names are not merged; they are written to a review file. A firm that changed its name or ZIP can still appear twice. Every listing is kept in <a href="https://github.com/Kyle-McCullers/blackbusinessresearchtable/releases/latest/download/listings.parquet">the listings file</a>.</p></div>
         <div class="callout"><h3>Certification is not existence</h3><p>A lapsed certification shows that a program no longer lists a firm, not that the business closed. Formerly certified firms stay in the data, flagged in <code>certification_status</code>, and are left out of the headline count. A business that has been recorded is never removed.</p></div>
         <div class="callout"><h3>Who this leaves out</h3><p>Public certification records over-represent firms that sell to governments and under-represent informal, home-based and online-only businesses. States with no program here are gaps, not evidence that no Black-owned businesses exist there.</p></div>
       </div>
 
       <h3 class="tbl-h">Sources</h3>
       <div class="tbl-wrap"><table class="plain" id="sources-table">
-        <thead><tr><th>Program</th><th>Covers</th><th>Type</th><th class="num">Records</th><th>Last observed</th><th>Refresh status</th></tr></thead>
+        <thead><tr><th>Program</th><th>Covers</th><th>Type</th><th class="num">Listings</th><th>Last observed</th><th>Refresh status</th></tr></thead>
         <tbody></tbody>
       </table></div>
       <dl class="defs">

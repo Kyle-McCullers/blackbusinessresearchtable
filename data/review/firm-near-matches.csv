@@ -1,0 +1,143 @@
+score,zip,firm_id_a,name_a,sources_a,firm_id_b,name_b,sources_b
+99,20006,F64d7aee5d2eb,IBS Management & Consultancy Service LLC,dc_ucp,F8feea2e9d247,"IBS Management & Consultancy Services, LLC",nyc_mwbe
+99,20011,Fb14b74a0e640,A & A Premium Paint Distributor LLC,dc_ucp,Fae5eed9314c0,"A & A PREMIUM PAINT DISTRIBUTORS, LLC",dc_ucp
+99,20910,Fbee4305cba24,Craig Richmond Landscape Architects,md_mbe,F10ed8aace28d,"Craig Richmond, Landscape Architect",va_swam
+99,21061,F60b36ecda1bf,JETT CAULKING WATERPROOFING & RESTORATIO,dc_ucp,Fdcd4cfb179b2,"JETT CAULKING WATERPROOFING AND RESTORATION, LLC",md_mbe
+99,23060,F04a9db49c1ea,"UNIVERSAL ADAPTIVE CONSULTING SERVICE, INC",md_mbe,Fc5e7de58aeca,Universal Adaptive Consulting Services Inc.,va_swam
+99,36104,Fae99810dff40,"Progam Management & Technology Services, Inc.",al_ombe,F831a79f24f6f,"Program Management and Technology Services, Inc.",al_ombe
+99,77044,F02bcd0451d8b,RMC Real Estate Management & Constructio,tx_hub,F3f2bf983b602,RMC Real Estate Management & Construction LLC,houston_obo
+99,77055,F3800ff591b5b,Coolspring Consulting & Advisory Service,tx_hub,Ff6d4f9a1e986,Coolspring Consulting & Advisory Services LLC,houston_obo
+99,77057,Fa4be85db1667,TWINS CONSTRUCTION & HOME REPAIR SERVICE,tx_hub,Fcce114251370,Twins Construction & Home Repair Services LLC,houston_obo
+99,77060,Fda66e2c28c5a,J.I.V.E (Juicing Is Very Essential) Juic,tx_hub,F1632af179807,J.I.V.E (Juicing Is Very Essential) Juice Company Inc.,houston_obo
+99,77090,F776ce603fa14,Moore Mental Health & Behavioral Service,tx_hub,Ff36f47ebe8ed,"Moore Mental Health & Behavioral Services, PLLC",houston_obo
+99,77375,F65abe409e6ae,ONWARD FABRICATIONS & INDUSTRIAL SERVICE,tx_hub,Fe3209ff6407d,"Onward Fabrications & Industrial Services, LLC",houston_obo
+99,77441,Ff92eb643eadb,National Association of Minority Speaker,tx_hub,F6fa3c62fe3d3,National Association of Minority Speakers LLC,houston_obo
+98,08822,F6878f64e47b0,Clark Transportation Consulting & Servic,dc_ucp,F28da3baa5dad,"Clark Transportation Consulting & Services, LLC",md_mbe;va_swam
+98,20006,F6afced93a721,"D. H. Lloyd & Associates, Inc",dc_ucp,F7200168f13b3,"D.H. Lloyd and Associates, Inc.",dc_ucp;md_mbe
+98,20006,F7bc11378279e,Engineering Design Consulting and Servic,dc_ucp,F1056a7c84b96,Engineering Design Consulting and Services,md_mbe
+98,20011,F010369207c6b,Sustainable Facilities Management Servic,dc_ucp,F14e416d03281,"SUSTAINABLE FACILITIES MANAGEMENT SERVICES, LLC",md_mbe
+98,20032,F6b54d08438e6,"FAIRNESS ENVIRONMENTAL SERVICE, INC.",dc_ucp,Fef1382ffc3fd,"Fairness Environmental Services, Inc.",dc_ucp
+98,20112,F324d18ebd16e,All American Logistic,va_swam,F969e5e60b518,ALL AMERICAN LOGISTICS CORPORATION,md_mbe
+98,20121,F82f21e067cee,Urian Communication Specialist LLC,dc_ucp,Fcfa4f77b1704,"Urian Communications Specialist, LLC",va_swam
+98,20603,Fe626d99a89d9,"Green Apple Business Solution, LLC",dc_ucp,F2df963ec03c0,GREEN APPLE BUSINESS SOLUTIONS,md_mbe
+98,20705,Fbbde93494847,"DURAFORCE CLEANING SERVICE, INC.",md_mbe,F2c4cf95ccbdf,Duraforce Cleaning Services Inc,dc_ucp
+98,20705,F53c7d1f93c68,One Source Consulting LLC,dc_ucp;md_mbe;nyc_mwbe;va_swam,F4627ba62c918,"OneSource Consulting, LLC",ma_sdo
+98,20706,F9036a3679cc4,"O. R. GEORGE & ASSOCIATES, INC.",md_mbe,F40360440cb7b,"O.R. George & Associates, Inc.",dc_ucp
+98,20715,Fd80e0daaa746,"IBS Management & Consultancy Services, L",dc_ucp,F75aa7bb47236,"IBS MANAGEMENT & CONSULTANCY SERVICES, LLC",md_mbe
+98,20721,F5cba00eeaece,COOPER ENTERPRISE II,dc_ucp,F59c7607af91d,Cooper Enterprises II,dc_ucp;md_mbe
+98,20737,F602b1b7dfa07,"Business Connections Enterprise, Inc.",dc_ucp,F7197938ece8f,"Business Connections Enterprises, Inc.",dc_ucp
+98,20740,F35ac2b9b9838,"Optimal Solution Group, LLC",dc_ucp,Fb2a60de6218f,Optimal Solutions Group LLC,md_mbe;nc_hub;or_cobid;va_swam
+98,20744,Fc9c960de94df,Weatherman Heating & Air Conditioning,dc_ucp,F94ad50e6b8d0,"WEATHERMAN HEATING & AIR CONDITIONING, I",dc_ucp
+98,20745,Fb9f4b57354c9,"ACHILLES CRANE & CONSTRUCTION, LLC",md_mbe,F2de1169d40bc,ACHILLES CRANE & CONTRUCTION,dc_ucp
+98,21009,Ff99cd6a8deb5,"BASNIGHT DRAFTING SERVICE, INC.",md_mbe,F5b5218e739fc,"BASNIGHT DRAFTING SERVICES, INC.",dc_ucp
+98,21215,F2e9d5488fbe0,"L. Johnson Tree Service, LLC",baltimore_mwboo,Ff6c3c96cba8d,"L. JOHNSON TREE SERVICES, LLC",md_mbe
+98,21234,F4a0a0851100c,"NISELL PLUMBING & HEATING, INC.",md_mbe,F7822f1ed21ad,Nissell Plumbing & Heating Inc,dc_ucp
+98,22150,F3671e0f89bde,"ARCHE Consulting Group, LLC",va_swam,F1980713c43b5,"ARCHÉ CONSULTING GROUP, LLC",md_mbe
+98,23236,F9d6135e95663,"Curtmont Global Serivices, Inc",dc_ucp,Fabee10751ef2,"Curtmont Global Services, Inc.",md_mbe;va_swam
+98,30349,F49d8ff99dca8,"ECONOMIC DECISION GROUP, INCORPORATED",dc_ucp;md_mbe,F809212961a58,"Economic Decisions Group, Inc",atlanta_aabe;nc_hub
+98,60616,Fbf225b4e9866,"Angel Flight Marketing Services, Inc.",in_idoa,F56b5f70348a2,"AngelFlight Marketing Services, Inc.",chicago_mwbe;ma_sdo
+98,77002,F46e3378e4c27,PRIMARY PROTECTION & SECURITY SERVICES L,tx_hub,Ff0cfba4dc5e5,Primary Protection & Security Services LLC,houston_obo
+97,11412,F1bd617048df7,"Palmer, Perry, Dixon and White Media Gro",dc_ucp,Ff293431fc619,"PALMER, PERRY, DIXON AND WHITE MEDIA GROUP LLC",md_mbe;nv_dbe
+97,20006,Fd3723c33cf70,"JUSTICE AND SUSTAINABILITY ASSOCIATES, L",dc_ucp,F092ee95d0a5f,"JUSTICE AND SUSTAINABILITY ASSOCIATES, LLC",md_mbe
+97,20018,F6e6026f22d50,"Metropolitan Strategies and Solutions, L",dc_ucp,F7f984623ddde,"Metropolitan Strategies and Solutions, LLC",md_mbe
+97,20019,Fcaed2a902a2a,Engineering Project Management Construct,dc_ucp,Fb9786bbfb7f4,"Engineering, Project Management, Constru",dc_ucp
+97,20032,Fd1c396f377f0,New System Demolition & Excavating Inc.,dc_ucp,F19494f420b4d,"New System Demolition & Excavation, Inc",dc_ucp
+97,20706,Fc50026927643,"D. Geneva Photography, LLC",va_swam,Ffa375dea736c,"D.GENEVA PHOTOGRAPHY, LLC",md_mbe
+97,20706,F85e3f7253e04,Estime Enterprise,dc_ucp,Fb35d80baf2af,"Estime Enterprises, Inc.",baltimore_mwboo;md_mbe;nyc_mwbe;va_swam
+97,20723,F102b5679a976,"Halcyon Tecknologies, LLC",dc_ucp,F702e3b250d73,"HALCYON TEKNOLOGIES, LLC",md_mbe
+97,20772,Fb98d7137646e,"SEERAM ENTERPRISE, LLC",md_mbe,F67a4874278ce,Seeram Enterprises LLC,dc_ucp
+97,30363,F3294dc8f4883,Rohadfox Construction Control Services C,dc_ucp,F338bcf1c84a8,Rohadfox Construction Control Services Corporation,atlanta_aabe;md_mbe
+97,32808,Fd9ce761e3a1f,"Associated Cost Engineers of Delaware, I",dc_ucp,Fb46caf3ffb8a,"ASSOCIATED COST ENGINEERS, INC. OF DELAWARE",nc_hub
+97,48228,F3c71029c9518,"Terry WorldWide, LLC",nyc_mwbe,F9083e721ab9e,"TerryWorldWide, LLC",dc_ucp
+97,60604,Fba8d92c85b0d,Milhouse Engineering and Construction,ca_mbe;chicago_mwbe;in_idoa;md_mbe;nyc_mwbe,F112c7e689b05,"Milhouse Engineering and Construction, I",dc_ucp;nc_hub
+97,77015,Ffbc33d0c835d,"PROLIFIC SUCCESS EVENTS & CONSULTING, L",tx_hub,Fda39408e165f,"Prolific Success Events & Consulting, LLC",houston_obo
+97,77027,F34201ca1c945,"Unmanned Aviation Training Institute, L",tx_hub,F008e5b89358e,"Unmanned Aviation Training Institute, LLC",ca_mbe
+97,77056,F9829de14533a,"Ellis Productions & Event Management, L",tx_hub,Fbcebe94fa0f4,"Ellis Productions & Event Management, LLC",houston_obo
+97,77068,F957054d091a8,"CONSUMMATE SOLUTIONS CONSULTING FIRM, L",tx_hub,F21ac471b9608,"Consummate Solutions Consulting Firm, LLC.",houston_obo
+97,77338,Fe2f7dc0306ca,Juicy Heads & Spicy Tails Crawfish and M,tx_hub,F07adb8f451c6,Juicy Heads & Spicy Tails Crawfish and More LLC,houston_obo
+97,77385,F7925e9044628,"INNOVA MASONARY, INC.",tx_hub,F36c5e8df159a,INNOVA MASONRY INC,houston_obo
+97,77498,F3ac6027fcec9,Prosystem Group LLC,houston_obo,Fa2c201039262,Prosystems Group,md_mbe
+97,77515,F20b0200d7f66,D-Jello's Freight LLC,tx_hub,Fa79ec0735b52,D-Jellos Freight LLC,houston_obo
+97,77584,Fcb3a4eaef1ce,"Tower Insurance & Financial Services, L",tx_hub,F7b33bf66ca8c,"Tower Insurance & Financial Services, LLC",houston_obo
+97,94103,Fc609c626493b,"Cornerstone Transportation Consulting, I",dc_ucp,Fec0bfd3e85c2,"CORNERSTONE TRANSPORTATION CONSULTING, INC.",dc_ucp;md_mbe
+96,11713,F336271eb8ffa,"LA VIE HOME, INC.",md_mbe,F0830a3d97d7e,"La Vie Homes, Inc.",nyc_mwbe
+96,20020,F2de065b39bc8,"The Henry Group, Management Consulting P",dc_ucp,F5b28c6fa6d74,"THE HENRY GROUP, MANAGEMENT CONSULTING PROF., LLC",md_mbe
+96,20706,Fa014ee56667e,"Capital Crescent Business Associates, LL",dc_ucp,F3eae37367578,"CAPITAL CRESCENT BUSINESS ASSOCIATES, LLC",dc_ucp;md_mbe
+96,20706,F826cd2e45c38,"NUCORE VISION, INC.",md_mbe,F7b08939f27e2,"NucoreVision, Inc.",ca_mbe;va_swam
+96,20774,F462b9f5645d4,"EAST STAAR TRANSPORTATION , LLC",md_mbe,Fdcb5861eba46,"East Star Transporation, LLC",dc_ucp
+96,20785,Ff3d85ad7373f,ALL IN 1 STOP LLC,md_mbe,Ff459bd28516c,All n 1 Stop,dc_ucp
+96,20910,F2ac41adda901,"Bankers Business Management Services, In",dc_ucp,F7e4a3eb9015b,"Bankers Business Management Services, Inc.",dc_ucp;md_mbe
+96,21076,Fb0069eba06cd,"Minoge Bros., Inc.",dc_ucp,Fec8b5fc03f51,"MINOGUE BROS., INC.",dc_ucp;md_mbe
+96,21217,F66494559e11c,"Precision Contracting and Developing, In",dc_ucp,F004518d2b10b,"PRECISION CONTRACTING AND DEVELOPING, INC.",md_mbe
+96,21244,F1622d332d26a,SPECIALTY MARKETING AND PRINT SERVICES,md_mbe,Fcb64ed152d66,Specialty Marketing And Printing Services,baltimore_mwboo
+96,22306,F79b8c696b268,"Screenthem Background Investigations, In",dc_ucp,Ffc224c3112e4,"SCREENTHEM BACKGROUND INVESTIGATIONS, INC.",dc_ucp;md_mbe;va_swam
+96,29730,F1636facab86a,"Prestige Environment Group, LLC",sc_smbcc,Fb7868d3fdef2,Prestige Environmental Group LLC,nc_hub
+96,33418,F9d10e83a903b,Chandler & Campbelle Investment Group LL,dc_ucp,F6af79876d8c3,Chandler & Campbelle Investment Group LLC,md_mbe
+96,33556,F510f7b69bd98,"McCloud Transportation & Associates, LLC",nc_hub,F205ddb880327,McCloud Transportation and Associates LL,dc_ucp
+96,77004,F567d8014f873,"Brian Smith Construction Inspection, In",tx_hub,F0eb081b5fb17,"Brian Smith Construction Inspection, Inc.",houston_obo
+96,77028,F897b65901fa8,Texas Enviro-Agri Management Services LL,tx_hub,Fdb4cc012cf36,Texas Enviro-Agri Management Services LLC,houston_obo
+96,77033,F83af3dea7770,"A&D Mechanical/Industrial Solutions, LL",tx_hub,F93dcb7971e80,"A&D Mechanical/Industrial Solutions, LLC",houston_obo
+96,77036,F853589dfda9c,Westpoint Executive Security Services In,tx_hub,Fca7ee749d709,Westpoint Executive Security Services Inc,houston_obo
+96,77054,Fe2f4cb5ce8f4,ANCHORING HOPES WELLNESS RECOVERY INSTIT,tx_hub,F03a99f30bbe4,ANCHORING HOPES WELLNESS RECOVERY INSTITUTE LLC,houston_obo
+96,77060,Fc9a25d6d5c40,"REMARKABLE KIDS PEDIATRIC HOME CARE, LL",tx_hub,F1cacfc54e7b8,"REMARKABLE KIDS PEDIATRIC HOME CARE, LLC",houston_obo
+96,77401,F5c8c6cfb1be5,The Speech and Voice Care Center of Hous,tx_hub,Fbb9769f2dff5,"The Speech and Voice Care Center of Houston, PLLC",houston_obo
+96,77469,F798d72061944,"Transit Safety & Security Solutions, In",tx_hub,F4af6a587027f,"Transit Safety & Security Solutions, Inc.",dc_ucp;houston_obo
+96,77494,Fac028982e784,Mathews & Co. Printing and Embroidery LL,tx_hub,Fd5c256c60da2,Mathews & Co. Printing and Embroidery LLC,houston_obo
+96,77584,Fe8f3315ed15d,E&M COMMERCIAL / RESIDENTIAL PAINTING LL,tx_hub,F208293eb9b8a,E&M Commercial / Residential Painting LLC,houston_obo
+96,77584,F887f620b86f2,The Right Choice Financial and Tax Servi,tx_hub,F9c39976d143c,The Right Choice Financial and Tax Services,houston_obo
+96,92673,F28be127e452a,"LOGIX SERVICE, INC.",md_mbe,F83d3f64f0c48,Logixservice Inc,ca_mbe
+95,20001,F07247efdb3cb,GREATER CAPITAL AREA REAL ESTATE DEVELOP,dc_ucp,F022dd64c3439,Greater Capital Area Real Estate Development LLC,md_mbe
+95,20746,F546897de782b,"Cleaning 2 Perfection, LLC",dc_ucp,Fa948e7714031,"Cleaning 2 Perfestion, LLC",dc_ucp
+95,20850,Faf9e626cc652,"ENERGY VENTURES EPC, LLC",md_mbe,F6d1ea20ecf92,"ENERGY VENTURES REP, LLC",md_mbe
+95,21146,F4320b6a2faa1,Justdrafting & Construction Support Serv,dc_ucp,Fb832c7d1e564,"JUSTDRAFTING & CONSTRUCTION SUPPORT SERVICES, INC.",md_mbe
+95,21201,F029f552be070,"Bith Energy, Inc.",va_swam,F1e9ff427aae9,"BITHENERGY, INC.",md_mbe
+95,21201,F5442d2ae023f,"U K Construction & Management, Llc",dc_ucp,F2e53be4a7664,"UK Construction and Management, LLC",dc_ucp;md_mbe
+95,21202,F7ab04f29429a,"Techs 4IT, Inc.",dc_ucp,F907c4fa2c500,"TECHS-4-IT, INC.",md_mbe
+95,60643,F2b0a7a2a48e4,H2 Construction Group LLC,chicago_mwbe,Faf42d47f9939,HD Construction Group Inc,chicago_mwbe
+95,77047,F39a3b60ff638,Witty Inventions iN (WIN) Multimedia Des,tx_hub,F867d91aad1c2,Witty Inventions iN (WIN) Multimedia Designs LLC,houston_obo
+95,77089,Fd594c9a829c1,Clarkson Refinery Municipal Cleaning Ser,tx_hub,Ffbccd771ed4d,Clarkson Refinery Municipal Cleaning Service Inc.,houston_obo
+95,77406,Fac80462dfbae,THIRD DIMENSIONS PUBLISHING COMPANY L.L.,tx_hub,F42b8ad9e18de,Third Dimensions Publishing Company L.L.C.,houston_obo
+95,77584,F18d2ea16f9ab,Professional Cleaning & Maintenance Serv,tx_hub,F359b48d3a140,Professional Cleaning & Maintenance Services,houston_obo
+94,11581,F790860e50c7f,JED ENGINEERING & LAND SURVEYING P C,dc_ucp;md_mbe,F2422f9023860,JED Engineering and Land Surveying. P.C.,nyc_mwbe;va_swam
+94,20715,F410044957eb8,"PLEASANT CARE AND NURSE AND STAFFING, CORP.",md_mbe,F38a202a5d873,"Pleasant Care and Nurse Staffing, LLC",md_mbe
+94,21044,F226335015af5,"D D & J, Llc",dc_ucp,Fb61be16e4b8d,"DD&J, LLC",dc_ucp
+94,21207,Fc506a4d7dec1,"Law Offices Of Joseph Reid, P.A.",dc_ucp,Fdb223da7e5f7,"REID, JOSEPH C. LAW OFFICE OF",md_mbe
+94,29203,F42b785eb0582,"GreenGuard Commercial Cleaning, LLC",nc_hub,F83151d75bc07,"Greenguard Commercial Cleaning, LLC - New",sc_smbcc
+94,29414,F690d38b3e158,Atlantic Meridian Contracting Corp,md_mbe,Fa0e373d690d3,Atlantic Meridian Contracting Corp - New,sc_smbcc
+94,29615,F48b43a26d929,"Michael M. Simpson & Associates, Inc.",nc_hub,F24b26570036e,"Michael M. Simpson & Associates, Inc. - New",sc_smbcc
+94,77003,F16fa0d089439,Advanced Non-Emergency Medical Transport,tx_hub,F36cbc78c4fb7,Advanced Non-Emergency Medical Transportation LLC,houston_obo
+94,77004,Ffc1838acf47c,Hemmings Risk Management & Insurance Ser,tx_hub,F8bab438b7a98,Hemmings Risk Management & Insurance Services Corporation,houston_obo
+94,77477,F3fddbbe55fe8,GET Corp. Payroll Accounting & Tax,houston_obo,Fe9989375b533,GETCORP Payroll Accounting & Tax,ca_mbe
+93,19709,F95d6d0c9f75c,"COUNTERMEASURES ASSESSEMENT AND SECURITY EXPERTS, LLC",md_mbe,Fb1807d49e1ec,COUNTERMEASURES ASSESSMENT & SECURITY EX,dc_ucp
+93,20770,F55658dfddbdb,"The Chappelle Group, LLC",md_mbe,F14b0b24b3c91,"The Chappelle Grp, LLC",nyc_mwbe
+93,20782,F8d364c15c3fa,"Advanced Engineering Design, Inc.",dc_ucp,F331e644a5514,"ADVANCED ENGINEERING DESIGN, INC. (AED)",dc_ucp
+93,22031,F846d8ad38b19,"BEL-STAR, INC.",md_mbe;va_swam,F0e4124b5d21c,"Belstar, Inc.",dc_ucp
+93,22079,Fb3e505825f69,"RAND Consulting Group, LLC",va_swam,F1975f11cb5ef,"Sands Consulting Group, Inc",md_mbe;va_swam
+93,22202,Fabfdaa58b01a,"G W Peoples Contracting Co., Inc.",md_mbe;va_swam,Feb1ce2fd874a,"G.W. Peoples Contracting Co., Inc.",dc_ucp
+93,23462,F271610166bc5,"E. L. HAMM & ASSOCIATES, INC.",va_swam,F1217aa991954,"E.L. Hamm & Associates, Incorporated",nc_hub
+93,23513,F73aae54bbc6d,"HLD Enterprises, Inc.",va_swam,Fe5a79c06fe3c,"L.D.W Enterprises, LLC",va_swam
+93,30328,Febd83513bf9d,"S. L. King & Associates, Inc.",nc_hub,Fac0d102ca39e,"SL King & Associates, Inc.",atlanta_aabe;md_mbe
+93,72209,F2e53474dfa2c,"Mabrie Mow N Go, LLC",ar_mwbe,F6df4484327b0,Marbie Mow N Go,ar_mwbe
+93,75219,F863ce6d784b3,"Pharos Capital Group GP, LLC",tx_hub,F3b0a8e076e25,"Pharos Capital Group, LLC",tx_hub
+93,77004,F70eb87b8b950,Complete Animal Wellness and Longevity M,tx_hub,F559304182269,Complete Animal Wellness and Longevity Medispa,houston_obo
+93,77042,F20b411945334,Texas Real Estate Private Investing Cons,tx_hub,Fb80b43ac179c,Texas Real Estate Private Investing Consortium LLC,houston_obo
+93,77066,F2014169777d1,Forever Chic Affairs Event Management Se,tx_hub,F39b7ee9f6373,Forever Chic Affairs Event Management Services LLC,houston_obo
+93,77433,F13dfa74abc5a,Facilities Integrated Solutions & Consulting LLC,houston_obo,Fe9afed93bcff,Facilities Integrated Solutions and Cons,tx_hub
+93,77433,Fce6c7c8dcb16,WENZY'S PLACE CARE HOME LLC,tx_hub,F338ef3a5acf7,Wenzys Place Care Home LLC,houston_obo
+92,21046,F702e1ed9b278,"Healthcare Resolution Services, Inc.",md_mbe;va_swam,F7d991916b347,"HealthCare Resolution Services, Inc. (HCRS)",nyc_mwbe
+92,22041,Fff117fa9de9b,Valley Green Landscaping Inc. (VGL),dc_ucp,F210f36cdf16a,"VALLEY GREEN LANDSCAPING, INC.",md_mbe
+92,77083,F910888df310f,SEE Construction & Remodeling,houston_obo,F23eafff32542,Star Construction and Remodeling LLC,tx_hub
+92,77433,F4a76738b3b49,Prather Creations Limited Liability Comp,tx_hub,F8d4e84111580,Prather Creations Limited Liability Company,houston_obo
+91,19801,Fe5831bf9d525,Dependable Construction of DE,de_osd,Fbcaece41af39,Dependable Construction of Delaware,md_mbe
+91,20850,F53637cfdb2ab,"ENERGY VENTURES AS, LLC",md_mbe,Fb39382cc45dd,"ENERGY VENTURES, LLC",md_mbe
+91,23462,F02050d1415a8,"M J SYNERGY GROUP, LLC",md_mbe,F0d55df00b7ee,MJ Synergy Group LLC.,dc_ucp
+91,27012,F6f13d9e7c630,Tate Consulting,nc_hub,Fe8809c36266b,"Tate Consulting TC, LLC",va_swam
+91,77060,Fd21404051219,ALL IN ONE BUILDING MAINTENANCE & CONSTR,tx_hub,F3d903c7f9d7e,ALL IN ONE BUlLDING MAINTENANCE & CONSTRUCTION LLC,houston_obo
+91,77092,F73cd55b7d4db,"EDOPP SOLUTIONS, LIMITED LIABILITY COMP",tx_hub,Fd6b1e175b089,"edOpp Solutions, Limited Liability Company",houston_obo
+91,77459,F30b8bf6c6c5a,Children Come Click Education and Techno,tx_hub,Fed20ab8631fc,Children Come Click Education and Technology (CCC) LLC.,houston_obo
+91,77477,F3fddbbe55fe8,GET Corp. Payroll Accounting & Tax,houston_obo,F4a54abf50452,GET Corp. Payroll Accounting & Tax d/b/a,tx_hub
+90,20012,F68febc814c98,Mo Construction Inc,md_mbe,F43f4ee7a349f,POS Construction Inc.,dc_ucp
+90,20019,F1121298cd9e6,"Emergency 911 Security, Inc.",ca_mbe;dc_ucp,Ffc09a91e963f,"EMERGENCY SECURITY, INC.",md_mbe
+90,23513,F73aae54bbc6d,"HLD Enterprises, Inc.",va_swam,F047f3edda629,"Land Enterprises, LLC",va_swam
+90,23513,Fe5a79c06fe3c,"L.D.W Enterprises, LLC",va_swam,F047f3edda629,"Land Enterprises, LLC",va_swam
+90,77056,Fc75ce76e80a8,"VoltAir Consulting Engineers, LLC",houston_obo,Fa279652bccdd,"VoltAir Consulting Engineers-Texas, LLC",houston_obo;tx_hub

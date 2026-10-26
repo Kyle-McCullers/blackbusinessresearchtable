@@ -4,8 +4,8 @@ Running list of things that would make the database better. Started 2026-10-25. 
 Priority guess in brackets: [H] changes what the numbers mean, [M] adds coverage, [L] polish.
 
 ## 1. Counting and identity
-- [H] One row per firm for the primary file; keep the longitudinal panel for history (Kyle, 2026-10-25). Needs a cross-source matching rule (proposed: normalized name + ZIP, near-matches to a review file, never auto-merged).
-- [H] Within-source repeats still present: NYC ~144, DC ~129, FL ~63, Chicago ~31, TX ~21 (same name+ZIP). Decide per source: separate locations vs. duplicate rows.
+- [DONE 2026-10-25] One row per firm for the primary file (name + ZIP; name + city + state where no ZIP). Remaining: review the ~140 near-matches in `data/review/firm-near-matches.csv`; improve matching for the 2,884 single listings (add street-level matching, geocoded proximity, or SAM UEI); decide whether a name or ZIP change should keep the same firm_id.
+- Within-source repeats are now merged into one firm (same name + ZIP). Multi-location firms therefore show n_listings > 1; keep location detail in listings.parquet if location-level analysis is needed.
 - [H] Certification status for sources other than CT. Known: TX hub_status is D/I for every stored row; NC has blank-status rows; Atlanta and AL carry expiration dates; SAM has registration status. Same columns (`certification_status`, `first_certified`, `certification_expires`).
 - [H] Owner-removal policy. Retention protects against sources dropping firms; it does not say what happens if an owner asks to be removed. Decide and write it down before the site is promoted.
 - [M] Ownership change as the one real disqualifier (DECISIONS 2026-06-14): currently invisible.

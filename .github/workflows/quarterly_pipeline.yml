@@ -99,10 +99,10 @@ jobs:
           # The asset keeps the name bbrt.duckdb so next quarter's download step still finds it.
           (cd scripts && python -m pipeline.public_db ../data/bbrt.duckdb ../data/public/bbrt.duckdb)
           TAG="data-$(date +%Y-%m-%d)"
-          gh release create "$TAG" data/public/bbrt.duckdb \
+          gh release create "$TAG" data/public/bbrt.duckdb data/listings.parquet \
             --title "BBRT research panel — $TAG" \
             --notes "Automated quarterly snapshot. Contact fields are withheld; see the codebook." --latest \
-          || gh release upload "$TAG" data/public/bbrt.duckdb --clobber
+          || gh release upload "$TAG" data/public/bbrt.duckdb data/listings.parquet --clobber
 
       - name: Commit and push updated CSV + summary
         run: |

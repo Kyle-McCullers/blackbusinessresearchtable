@@ -16,7 +16,7 @@ from pipeline.db import open_db
 from pipeline.export import PRIVATE_COLUMNS, _STATE_ABBR, _VALID_ABBR
 
 _EMAIL = r"[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}"
-_TABLES = ["sources", "snapshots", "business_registry", "field_catalog", "merged_records"]
+_TABLES = ["sources", "snapshots", "business_registry", "field_catalog", "merged_records", "firms", "firm_map"]
 
 
 def build_public_db(src: Path, dest: Path) -> None:
@@ -47,6 +47,8 @@ def build_public_db(src: Path, dest: Path) -> None:
                 "records_dropped, sources_run, sources_failed, "
                 "COALESCE(sources_carried_forward, '[]') FROM s.snapshots"
             )
+        elif t in ("firms", "firm_map"):
+            con.execute(f"CREATE TABLE {t} AS SELECT * FROM s.{t}")    # contact-free by construction
         else:
             con.execute(f"INSERT INTO {t} SELECT * FROM s.{t}")
     cols = [r[1] for r in con.execute("PRAGMA table_info('businesses')").fetchall()]

@@ -46,7 +46,7 @@
   var countyList = [];
   var grid = {};
   var coverage = {};             // state abbr -> 'statewide' | 'transportation' | 'city'
-  var scopeByName = {};          // data_source label -> scope
+  var scopeById = {};            // source_id -> scope
   var statesGeo = null;
   var filters = { status: 'headline', scope: '', st: '', q: '', fips: '' };
   var layerMode = 'counties';    // 'counties' | 'dots'
@@ -149,7 +149,8 @@
       if (!STATE_NAMES[st]) st = r._fips ? (counties[r._fips] || {}).st || '' : '';
       r._st = st;
       r._former = r.certification_status === 'former';
-      r._scope = scopeByName[r.data_source] || '';
+      r._scopes = (r.sources || '').split(';').map(function (id) { return scopeById[id]; });
+      r._programs = (r.programs || '').split('; ').filter(Boolean);
       r._hay = ((r.business_name || '') + ' ' + (r.address_city || '') + ' ' + (r.industry || '')).toLowerCase();
     });
   }
@@ -160,7 +161,7 @@
     sources.forEach(function (s) {
       s.records = parseInt(s.records, 10) || 0;
       s.retained_records = parseInt(s.retained_records, 10) || 0;
-      scopeByName[s.source_name] = s.scope;
+      scopeById[s.source_id] = s.scope;
       if (s.records > 0 && s.state && rank[s.scope]) {
         if (!coverage[s.state] || rank[s.scope] > rank[coverage[s.state]]) coverage[s.state] = s.scope;
       }
@@ -192,10 +193,11 @@
     setText('cite-snapshot', asOf);
     setText('footer-asof', 'Snapshot ' + asOf + (meta.run_date ? ' · refreshed ' + fmtDate(meta.run_date) : ''));
 
+    var nListings = sources.reduce(function (a, s) { return a + s.records; }, 0);
     $('stat-footnote').textContent =
-      'The Businesses figure counts listings that are currently certified, plus listings from programs that do not report certification status. ' +
-      (former ? 'A further ' + fmt(former) + ' firms were certified in the past and are kept in the data (' + 'certification_status = former); including them gives ' + fmt(rows.length) + '. ' : '') +
-      'Certification records show whether a program lists a firm, not whether the business exists or operates. These are listings, not yet deduplicated firms.';
+      'The Businesses figure is one row per firm: ' + fmt(nListings) + ' program listings matched on name and ZIP (or city and state where a program publishes no ZIP). It counts firms that are currently certified, plus firms from programs that report no status. ' +
+      (former ? 'A further ' + fmt(former) + ' firms were certified in the past and are kept in the data (certification_status = former); including them gives ' + fmt(rows.length) + '. ' : '') +
+      'Certification records show whether a program lists a firm, not whether the business exists or operates. A firm that changed its name or ZIP can still appear twice.';
 
     $('coverage-lede').textContent =
       'Records come from ' + withData.length + ' public programs in ' + total + ' jurisdictions (' + stateCount + ' states' + (hasDC ? ' and DC' : '') + '): ' +
@@ -234,7 +236,7 @@
   function passes(r, ignoreFips) {
     if (filters.status === 'headline' && r._former) return false;
     if (filters.status === 'former' && !r._former) return false;
-    if (filters.scope && r._scope !== filters.scope) return false;
+    if (filters.scope && r._scopes.indexOf(filters.scope) === -1) return false;
     if (filters.st && r._st !== filters.st) return false;
     if (!ignoreFips && filters.fips && r._fips !== filters.fips) return false;
     if (filters.q && r._hay.indexOf(filters.q) === -1) return false;
@@ -251,7 +253,7 @@
     });
 
     setText('result-n', fmt(current.length));
-    setText('result-l', filters.status === 'former' ? 'formerly certified listings' : 'listings match');
+    setText('result-l', filters.status === 'former' ? 'formerly certified businesses' : 'businesses match');
     var sub = '';
     if (filters.fips && counties[filters.fips]) {
       sub = 'Limited to ' + counties[filters.fips].name + ', ' + counties[filters.fips].st + ' — <a href="#" id="clear-fips">show all</a>. ';
@@ -329,7 +331,7 @@
       feats.push({ type: 'Feature', geometry: { type: 'Point', coordinates: [r._lon, r._lat] }, properties: {
         name: r.business_name || '', city: r.address_city || '', st: r._st, industry: r.industry || '',
         website: r.website || '', year: r.year_founded || '', former: r._former ? 1 : 0,
-        source: r.data_source || '', desc: (r.description || '').substring(0, 140)
+        source: r.programs || '', n: r.n_listings || '1', desc: (r.description || '').substring(0, 140)
       } });
     });
     src.setData({ type: 'FeatureCollection', features: feats });
@@ -478,12 +480,12 @@
     var ind = {}, src = {};
     inCounty.forEach(function (r) {
       if (r.industry) { var k = r.industry.split(/[;,]/)[0].trim().substring(0, 48); if (k) ind[k] = (ind[k] || 0) + 1; }
-      if (r.data_source) src[r.data_source] = (src[r.data_source] || 0) + 1;
+      r._programs.forEach(function (pg) { src[pg] = (src[pg] || 0) + 1; });
     });
     function top(o, n) { return Object.keys(o).sort(function (a, b) { return o[b] - o[a]; }).slice(0, n); }
     var html = '<button class="sel-x" id="sel-x" aria-label="Close">×</button>' +
       '<div class="sel-title">' + escHtml(c.name) + ', ' + c.st + '</div>' +
-      '<div class="sel-row"><span>Listings matching your filters</span><b>' + fmt(inCounty.length) + '</b></div>' +
+      '<div class="sel-row"><span>Businesses matching your filters</span><b>' + fmt(inCounty.length) + '</b></div>' +
       (filters.status === 'all' ? '<div class="sel-row"><span>…of which formerly certified</span><b>' + fmt(former) + '</b></div>' : '') +
       '<div class="sel-row"><span>Program in this state</span><b>' + escHtml(coverage[c.st] ? SCOPE_LABEL[coverage[c.st]].replace(' program', '').replace(' directory', '') : 'None yet') + '</b></div>';
     if (top(ind, 3).length) html += '<ul class="sel-list">' + top(ind, 3).map(function (k) { return '<li>' + escHtml(k) + ' (' + ind[k] + ')</li>'; }).join('') + '</ul>';
@@ -542,10 +544,10 @@
   }
 
   // ── Table ─────────────────────────────────────────────────────────────────
-  var EXPANDED_COLS = [6, 7, 8, 9, 10, 11];
+  var EXPANDED_COLS = [6, 7, 8, 9, 10, 11, 12, 13];
   function initTable() {
     table = window.jQuery('#business-table').DataTable({
-      data: current, pageLength: 25, lengthChange: false, autoWidth: false, dom: 'tip',
+      data: current, pageLength: 25, lengthChange: false, autoWidth: false, dom: 'tip', scrollX: true,
       columnDefs: [{ targets: EXPANDED_COLS, visible: false }],
       columns: [
         { data: 'business_name', title: 'Business name' },
@@ -561,12 +563,14 @@
         { data: 'address_street', title: 'Address', defaultContent: '—' },
         { data: 'certification', title: 'Certification', defaultContent: '—' },
         { data: 'confidence', title: 'Basis', orderable: false,
-          render: function (d) { return d === 'confirmed_black' ? '<span class="badge badge-confirmed">Source states Black-owned</span>' : '<span class="badge badge-unverified">MBE, unverified</span>'; } },
+          render: function (d) { return d === 'confirmed_black' ? '<span class="badge badge-confirmed">Source-stated</span>' : '<span class="badge badge-unverified">MBE, unverified</span>'; } },
         { data: 'naics_code', title: 'NAICS', defaultContent: '—' },
         { data: 'certification_status', title: 'Status', defaultContent: '—',
           render: function (d) { return d === 'current' ? 'Current' : d === 'former' ? 'Former' : '—'; } },
         { data: 'description', title: 'Description', defaultContent: '—',
-          render: function (d) { return !d ? '—' : escHtml(d.length > 150 ? d.substring(0, 150) + '…' : d); } }
+          render: function (d) { return !d ? '—' : escHtml(d.length > 150 ? d.substring(0, 150) + '…' : d); } },
+        { data: 'programs', title: 'Listed by', defaultContent: '—' },
+        { data: 'n_listings', title: 'Listings', defaultContent: '1' }
       ]
     });
   }
