@@ -93,3 +93,13 @@ def export_meta_json(con, output_path: Path, snapshot_id: str) -> dict:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(meta, indent=2) + "\n")
     return meta
+
+
+def export_parquet(csv_path: Path, parquet_path: Path) -> None:
+    """Write the public CSV as Parquet (same rows and columns, all text) for R/Python/DuckDB users."""
+    import duckdb
+    con = duckdb.connect()
+    con.execute(
+        f"COPY (SELECT * FROM read_csv('{csv_path}', all_varchar=true, header=true)) "
+        f"TO '{parquet_path}' (FORMAT PARQUET, COMPRESSION ZSTD)")
+    con.close()

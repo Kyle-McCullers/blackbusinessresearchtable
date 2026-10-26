@@ -35,7 +35,7 @@ from pipeline.db import (
 from pipeline.entity_resolver import resolve
 from pipeline.geocoder import batch_geocode
 from pipeline.export import export_csv, write_summary
-from pipeline.coverage import export_sources_csv, export_meta_json
+from pipeline.coverage import export_sources_csv, export_meta_json, export_parquet
 
 
 def current_snapshot_id(d: date = None) -> str:
@@ -207,6 +207,7 @@ def run(snapshot_id: str = None) -> None:
     export_csv(con, CSV_PATH, snapshot_id)
     export_sources_csv(con, CSV_PATH.parent / "sources.csv", snapshot_id)
     export_meta_json(con, CSV_PATH.parent / "meta.json", snapshot_id)
+    export_parquet(CSV_PATH, CSV_PATH.with_suffix(".parquet"))
 
     former = con.execute(
         "SELECT COUNT(*) FROM businesses WHERE snapshot_id = ? AND certification_status = 'former'",

@@ -2532,3 +2532,14 @@ def test_export_sources_csv_counts_and_retained(tmp_path):
     row = list(csv.DictReader(open(out)))[0]
     assert (row["scope"], row["state"], row["records"], row["former_records"]) == ("statewide", "CT", "2", "1")
     assert row["last_observed"] == "2026-10-16"
+
+
+def test_export_parquet_matches_csv(tmp_path):
+    import duckdb as _d
+    from pipeline.coverage import export_parquet
+    src = tmp_path / "b.csv"
+    src.write_text('business_id,business_name,address_state\n1,"Acme, LLC",MD\n2,Beta Co,\n')
+    out = tmp_path / "b.parquet"
+    export_parquet(src, out)
+    rows = _d.connect().execute(f"SELECT business_id, business_name, address_state FROM read_parquet('{out}') ORDER BY 1").fetchall()
+    assert rows == [("1", "Acme, LLC", "MD"), ("2", "Beta Co", None)]

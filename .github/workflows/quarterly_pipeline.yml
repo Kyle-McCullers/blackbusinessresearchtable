@@ -108,6 +108,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/businesses.csv data/sources.csv data/meta.json data/snapshots/
+          git add data/businesses.csv data/businesses.parquet data/sources.csv data/meta.json data/snapshots/
           git diff --staged --quiet || git commit -m "chore: quarterly pipeline update"
           git push

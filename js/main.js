@@ -349,6 +349,7 @@
     $('legend-ramp').style.display = dots ? 'none' : 'flex';
     setText('legend-title', dots ? 'Individual listings (green = current, gold = former)' : 'Listings per county');
     if (!dots) renderLegend(lastBreaks);
+    padForLegend();
   }
 
   // ── Map ───────────────────────────────────────────────────────────────────
@@ -437,12 +438,21 @@
       });
 
       mapReady = true;
+      padForLegend();
+      window.addEventListener('resize', padForLegend);
       setLayerMode(layerMode);
       applyFilters();
       var ld = $('map-loading'); if (ld) ld.hidden = true;
       var qa = /[?&]qa=(\w+)/.exec(location.search);   // screenshot/QA hook: jump to a section
       if (qa && $(qa[1])) { document.documentElement.style.scrollBehavior = 'auto'; window.scrollTo(0, $(qa[1]).offsetTop - 64); }
     });
+  }
+
+  // Keep the overlaid legend from covering what the map is framing: pad the camera by the
+  // legend's height so jumps and fits centre in the visible area.
+  function padForLegend() {
+    var lg = $('map-legend'); if (!mapReady || !lg) return;
+    map.setPadding({ top: 0, left: 0, right: 0, bottom: lg.offsetHeight + 34 });
   }
 
   function showFirm(f) {

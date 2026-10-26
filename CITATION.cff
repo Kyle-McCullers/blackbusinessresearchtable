@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "If you use this database, please cite it as below."
+title: "Black Business Research Table"
+type: dataset
+authors:
+  - family-names: McCullers
+    given-names: Kyle
+    affiliation: "Ross School of Business, University of Michigan"
+repository-code: "https://github.com/Kyle-McCullers/blackbusinessresearchtable"
+url: "https://blackbusinessresearchtable.com"
+abstract: "A research database of Black-owned businesses built from public certification records, with a longitudinal panel and a one-row-per-listing public snapshot. Contact fields are withheld and released to verified researchers on request."
+# TODO before first formal release: add the data license and a DOI (e.g. from Zenodo) and the release date.
