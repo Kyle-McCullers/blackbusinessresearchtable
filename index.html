@@ -55,6 +55,14 @@
         <div class="stat"><div class="stat-number" id="stat-jurisdictions">—</div><div class="stat-label">Jurisdictions with a program</div></div>
         <div class="stat"><div class="stat-number" id="stat-asof">—</div><div class="stat-label">Latest snapshot</div></div>
       </div>
+      <div class="coverage-bar-wrap">
+        <div class="coverage-bar-header">
+          <span class="coverage-bar-label">Database coverage</span>
+          <span class="coverage-bar-pct" id="coverage-pct">—</span>
+        </div>
+        <div class="coverage-bar-track"><div class="coverage-bar-fill" id="coverage-fill" style="width:0%"></div></div>
+        <div class="coverage-bar-note" id="coverage-note">of an estimated 160,000 Black-owned employer businesses in the U.S. (2021 Census Annual Business Survey)</div>
+      </div>
       <p class="stat-footnote" id="stat-footnote">Loading counts…</p>
     </div>
   </section>
@@ -123,6 +131,12 @@
     <div class="map-wrap">
       <div id="map" aria-label="Map of Black-owned businesses listed in public records"></div>
       <div class="map-loading" id="map-loading">Loading map and data…</div>
+      <div class="map-jump" id="map-jump" role="group" aria-label="Jump to region">
+        <button type="button" data-jump="us">Lower 48</button>
+        <button type="button" data-jump="ak">Alaska</button>
+        <button type="button" data-jump="hi">Hawaii</button>
+        <button type="button" data-jump="pr">Puerto Rico</button>
+      </div>
       <div class="map-legend" id="map-legend">
         <div class="legend-head">
           <span class="legend-title" id="legend-title">Businesses per county</span>
@@ -179,10 +193,15 @@
 
       <h3 class="tbl-h">Sources</h3>
       <div class="tbl-wrap"><table class="plain" id="sources-table">
-        <thead><tr><th>Program</th><th>Covers</th><th>Type</th><th class="num">Records</th><th>Last observed</th></tr></thead>
+        <thead><tr><th>Program</th><th>Covers</th><th>Type</th><th class="num">Records</th><th>Last observed</th><th>Refresh status</th></tr></thead>
         <tbody></tbody>
       </table></div>
-      <p class="fine">“Last observed” is the most recent date a record from that program was seen in the program's own directory. Programs delivered as manual files, or whose directory could not be read in the latest run, keep their earlier records and show an earlier date; absence from a directory is never treated as a business closing.</p>
+      <dl class="defs">
+        <dt>Last observed</dt><dd>The most recent date a record from that program was seen in the program's own directory.</dd>
+        <dt>Refresh status: Updated</dt><dd>The program's directory was collected in the latest run, so its records were re-checked.</dd>
+        <dt>Refresh status: Carried forward</dt><dd>The program's directory was not collected in the latest run. Some programs are delivered as files that we refresh only when a new file is provided, and some directories could not be read. We keep the earlier records unchanged. “Partly” means only some of the program's records were re-checked.</dd>
+        <dt>Why records are kept</dt><dd>Absence from a directory is never treated as a business closing, so a record that has been collected is not removed.</dd>
+      </dl>
 
       <div class="method-links">
         <a class="btn-secondary" href="data/codebook.csv" download>Codebook</a>

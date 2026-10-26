@@ -18,12 +18,17 @@ Priority guess in brackets: [H] changes what the numbers mean, [M] adds coverage
 - [M] File-based sources refresh only when someone supplies a file (MD, NYC, MA, IN, AL, others). Put them on a schedule and show "last refreshed" on the site (already shown as "carried forward").
 - [M] More B2Gnow tenants whose export carries ethnicity (see ethnicity-field-audit).
 
+- [H] Freshness: in the 2026-Q4 run only Connecticut and Delaware were re-collected automatically; the other 21 programs are carried forward from earlier files (see the Sources table on the site). Decide per source: automate, schedule a manual refresh, or label as a dated snapshot.
+- [M] SAM.gov: needs (a) a personal SAM.gov API key or a manual download of one monthly public extract, (b) a basis label for self-certified `OY` (not `confirmed_black`), (c) the Phase 2 multi-basis schema or a new tier on main. First step is counting `OY` records in one extract.
+
 ## 3. Sources that are not government programs
 - [M] Directories of Black-owned businesses (Support Black Owned, National Black Guide, Official Black Wall Street, We Buy Black, Black-Owned Everything). Tier `self_identified` (decided 2026-06-14). Check each site's terms before collecting; the NMSDC decision (2026-06-13) is the precedent: only redistribute what is public and redistributable.
 - [M] News and "best Black-owned in <city>" lists, tier `media_identified`. Keep the article URL and date as provenance.
 - [M] Black chambers of commerce and local business associations; MBDA centers; HBCU entrepreneurship programs.
 - [M] Grant and accelerator cohorts (founder funds, bank and corporate programs): dated, named lists with a clear identity basis.
 - [M] Google Business Profile and Yelp "Black-owned" attributes (the Phase 2 disclosure work already reads Google).
+- [M] Yelp: the Places API attribute list shows no ownership attribute (checked 2026-10-25, attributes page only; pricing and storage terms not read). Yelp pages show a self-certified "Black-owned" badge, but scraping it would breach Yelp's terms. Routes: ask Yelp for a research/data partnership (Yelp partnered with My Black Receipt in 2020), check whether the academic Yelp Open Dataset carries the attribute, or use the API only to match firms we already hold (fills `yelp_url` / `discloses_yelp`).
+- [M] My Black Receipt (Kezia Williams, The Black upStart): 2020 campaign with a self-submitted business list (reported ~7,000 businesses, 15 countries). myblackreceipt.com did not resolve on 2026-10-25; try archived copies and contact the organizers.
 - [L] Instagram and other social platforms as leads only, not as a collected source (terms).
 - [M] Public suggestion form is live on the branch site (goes to the Formspree inbox); needs a review workflow: verify against a public source, then add as `self_identified` with provenance.
 
@@ -62,3 +67,14 @@ Priority guess in brackets: [H] changes what the numbers mean, [M] adds coverage
 
 ## 10. Outreach to directory holders
 - [H] Formal research-access requests to organizations that hold directories of Black-owned businesses (see docs/outreach/ when drafted). Precedent and constraint: DECISIONS 2026-06-13 (NMSDC).
+
+## 11. Making BBRT more attractive to researchers
+- Citable, versioned releases: DOI per snapshot (Zenodo), `CITATION.cff`, explicit data license, a data-paper submission.
+- Validation sample: audit a random 300-500 firms (exists? Black-owned? address right?) and publish precision estimates by source.
+- Coverage weights: compare listings to Census firm counts by state and NAICS so analysts can reweight; document selection into certification.
+- Linkage keys: UEI/CAGE from SAM, county/tract FIPS, NAICS; link to public award and loan data (USAspending/FPDS contracts; SBA loan files; PPP loan-level data, which I believe has an optional borrower-race field, to verify).
+- Longitudinal depth: archived copies of state directories to backfill earlier years; certification spells; first/last observed.
+- Policy-shock designs: the 2025 USDOT DBE rule and program changes after SFFA make a firm-level record of who was listed, and when, unusually valuable.
+- Access: Parquet files, an R and a Python loader, example notebooks, a read-only query API; restricted-access tier for contact fields under a data-use agreement; a survey-frame service.
+- Disclosure layer (the dissertation work): online identity disclosure (Google, Yelp, Instagram) is a distinctive variable no other directory has.
+- Trust: advisory group, owner opt-out and removal policy, public changelog.

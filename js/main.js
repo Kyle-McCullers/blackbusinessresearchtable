@@ -28,7 +28,11 @@
     '40':'OK','41':'OR','42':'PA','44':'RI','45':'SC','46':'SD','47':'TN','48':'TX','49':'UT',
     '50':'VT','51':'VA','53':'WA','54':'WV','55':'WI','56':'WY','72':'PR'
   };
+  // Denominator for the coverage bar: Black-owned employer businesses, 2021 Census Annual Business Survey.
+  // To be replaced by a pinned Census API pull (docs/improvement-backlog.md section 9).
+  var US_BLACK_EMPLOYER_BUSINESSES = 160000;
   var SCOPE_LABEL = { statewide: 'Statewide program', transportation: 'Transportation (DBE) directory', city: 'City program', federal: 'Federal program' };
+  var SCOPE_HEADING = { statewide: 'Statewide programs', transportation: 'Transportation (DBE) directories', city: 'City programs', federal: 'Federal programs' };
   var RAMP = ['#e6f3ec', '#c4e3d3', '#98cdb3', '#68b08f', '#3f9070', '#237050', '#134a33'];
   var COLOR_NONE = '#f1f4f2', COLOR_NOSRC = '#e3e3e3';
 
@@ -178,6 +182,9 @@
     var former = rows.length - headline;
 
     setText('stat-count', fmt(headline));
+    var pct = headline / US_BLACK_EMPLOYER_BUSINESSES * 100;
+    setText('coverage-pct', pct.toFixed(1) + '%');
+    var fill = $('coverage-fill'); if (fill) setTimeout(function () { fill.style.width = Math.min(100, pct) + '%'; }, 200);
     setText('stat-programs', fmt(withData.length));
     setText('stat-jurisdictions', fmt(total));
     var asOf = meta.snapshot_id || '—';
@@ -208,15 +215,16 @@
       var list = sources.filter(function (s) { return s.scope === scope; })
         .sort(function (a, b) { return (a.state || 'ZZ').localeCompare(b.state || 'ZZ') || a.source_name.localeCompare(b.source_name); });
       if (!list.length) return;
-      html += '<tr class="grp"><td colspan="5">' + escHtml(SCOPE_LABEL[scope]) + 's</td></tr>';
+      html += '<tr class="grp"><td colspan="6">' + escHtml(SCOPE_HEADING[scope]) + '</td></tr>';
       list.forEach(function (s) {
         var covers = s.place ? s.place + ', ' + s.state : (STATE_NAMES[s.state] || 'National');
-        var last;
-        if (!s.records) last = '<span class="tag-stale">not loaded</span>';
-        else if (s.retained_records >= s.records) last = escHtml(fmtDate(s.last_observed)) + ' <span class="tag-stale">carried forward</span>';
-        else last = escHtml(fmtDate(s.last_observed));
+        var refresh;
+        if (!s.records) refresh = '<span class="tag-stale">Not loaded</span>';
+        else if (s.retained_records >= s.records) refresh = '<span class="tag-stale">Carried forward</span>';
+        else if (s.retained_records > 0) refresh = '<span class="tag-stale">Partly carried forward</span>';
+        else refresh = 'Updated';
         html += '<tr><td>' + escHtml(s.source_name) + '</td><td>' + escHtml(covers) + '</td><td>' + escHtml(s.program) +
-          '</td><td class="num">' + fmt(s.records) + '</td><td>' + last + '</td></tr>';
+          '</td><td class="num">' + fmt(s.records) + '</td><td>' + escHtml(fmtDate(s.last_observed) || '—') + '</td><td>' + refresh + '</td></tr>';
       });
     });
     tb.innerHTML = html;
@@ -344,10 +352,17 @@
   }
 
   // ── Map ───────────────────────────────────────────────────────────────────
+  // Lowest zoom that still frames the Lower 48 for this screen width (about 66 degrees of
+  // longitude), so the map cannot be zoomed out to the whole world.
+  function minZoomFor(widthPx) { return Math.max(2, Math.log2((widthPx / 512) * (360 / 66))); }
+
   function initMap(countiesGeo) {
+    var mz = minZoomFor(($('map') || {}).clientWidth || 1000);
+    JUMPS.us.zoom = mz + 0.05;
     map = new mapboxgl.Map({
       container: 'map', style: 'mapbox://styles/mapbox/light-v11',
-      center: [-96, 37.6], zoom: 3.55, minZoom: 2.5, attributionControl: true, preserveDrawingBuffer: true
+      center: [-96, 37.6], zoom: mz + 0.05, minZoom: mz, attributionControl: true, preserveDrawingBuffer: true,
+      projection: 'mercator', maxBounds: [[-180, 14], [-62, 72.5]], renderWorldCopies: false
     });
     map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
     map.on('load', function () {
@@ -477,7 +492,7 @@
 
   function fitToState(st) {
     if (!mapReady) return;
-    if (!st) { map.easeTo({ center: [-96, 37.6], zoom: 3.55, duration: 600 }); return; }
+    if (!st) { map.easeTo({ center: JUMPS.us.center, zoom: JUMPS.us.zoom, duration: 600 }); return; }
     var b = null;
     countyList.forEach(function (c) {
       if (c.st !== st) return;
@@ -486,6 +501,18 @@
     });
     if (b && st !== 'AK' && st !== 'HI') map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: 50, duration: 600 });
     else if (b) map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: 50, duration: 600, maxZoom: 6 });
+  }
+
+  var JUMPS = {
+    us: { center: [-96, 37.6], zoom: 3.55 }, ak: { center: [-152, 63.5], zoom: 3.3 },
+    hi: { center: [-157.4, 20.6], zoom: 5.6 }, pr: { center: [-66.4, 18.2], zoom: 7.2 }
+  };
+  function wireJumps() {
+    document.querySelectorAll('#map-jump button').forEach(function (b) {
+      b.addEventListener('click', function () {
+        if (mapReady) map.easeTo({ center: JUMPS[b.getAttribute('data-jump')].center, zoom: JUMPS[b.getAttribute('data-jump')].zoom, duration: 800 });
+      });
+    });
   }
 
   // ── Place search (Mapbox Geocoding) ───────────────────────────────────────
@@ -619,6 +646,7 @@
     $('guide-go').addEventListener('click', closeGuide);
     $('guide').addEventListener('click', function (e) { if (e.target === this) closeGuide(); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('guide').hidden) closeGuide(); });
+    wireJumps();
     wireForm('dataset-form', 'form-success', 'Submit request →');
     wireForm('suggest-form', 'suggest-success', 'Send suggestion →');
   }
