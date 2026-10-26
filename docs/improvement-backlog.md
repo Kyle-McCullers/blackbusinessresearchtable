@@ -31,7 +31,7 @@ Priority guess in brackets: [H] changes what the numbers mean, [M] adds coverage
 - Where they already are: government certification lists include professional-services firms. In the current file, NAICS 54 (professional/scientific/technical) = 1,424 and NAICS 62 (health care) = 335 listings, but NAICS is filled for only 5,589 of 36,280 listings, so these undercount. Offices of physicians (6211) = 21, dentists (6212) = 1, legal (5411) = 64, accounting (5412) = 90.
 - Existing directories (lead sources, all self-identified, uneven verification): Find A Black Doctor, Black-Owned Dental Practices, Black Doctors, Black Health Directory (blackhealth.org), Better Black News provider directory, Support Black Owned, National Black Guide, plus association directories (National Medical Association, National Dental Association; others such as NBA, NABA, NOMA, Association of Black Psychologists to check). Several are member-only or have no stated reuse terms.
 - Verification that a practice exists and where: the public NPI registry (NPPES) and state licensing boards give provider, specialty and practice address. They do not give race, so identity still comes from the directory or the person. Pipeline idea: directory lead -> NPI / license match -> one practice record.
-- Open design question: BBRT lists businesses, directories list practitioners. A Black physician employed by a health system is not a Black-owned business. Need a rule (owner-operated practice only? partners? group practices?) and a field for practice vs. practitioner.
+- Scope (Kyle, 2026-10-25): only practices that are Black-owned. Practitioners who work inside larger organizations (health systems, large firms) are out of scope. Still to settle: group practices with a Black partner (ownership share?) and how to evidence ownership.
 - Denominator: Census Annual Business Survey and Nonemployer Statistics report firm counts by owner race and NAICS (aggregate). Use them to say how much of each profession this covers.
 
 ## 5. Location
@@ -54,3 +54,11 @@ Priority guess in brackets: [H] changes what the numbers mean, [M] adds coverage
 - [M] Phase 2 disclosure branch: decide merge scope (see memory note on the disclosure study).
 - [M] Archive each snapshot with a DOI (e.g. Zenodo) so citations point at a fixed file.
 - [L] Accessibility audit of the new site; print and screenshot-friendly map export.
+
+## 9. Census linkage
+- [H] Get county/tract FIPS from the Census geocoder (`returntype=geographies`) in the pipeline instead of matching points to county polygons in the browser.
+- [M] Pull denominators with the Census Data API, pinned by vintage and cached with URL, retrieval date and hash: ACS 5-year Black population by county/tract; Annual Business Survey and Nonemployer Statistics by owner race and sector; County Business Patterns establishments by NAICS. Confirm the exact geographies each table offers before relying on them.
+- [M] Site layers: listings per 1,000 Black residents; listings vs. estimated Black-owned firms.
+
+## 10. Outreach to directory holders
+- [H] Formal research-access requests to organizations that hold directories of Black-owned businesses (see docs/outreach/ when drafted). Precedent and constraint: DECISIONS 2026-06-13 (NMSDC).
